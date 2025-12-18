@@ -100,3 +100,27 @@ export const adminApi = {
   fulfillTransfer: (requestId: number, data?: { notes?: string }) =>
     api.post(`/admin/requests/${requestId}/fulfill-transfer`, data),
 };
+
+// Dashboard API
+export const dashboardApi = {
+  get: () => api.get('/dashboard'),
+};
+
+// Users API (Admin)
+export const usersApi = {
+  list: (params?: Record<string, unknown>) => api.get('/admin/users', { params }),
+  get: (id: number) => api.get(`/admin/users/${id}`),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/admin/users/${id}`, data),
+  assignRoles: (id: number, roles: string[]) => api.post(`/admin/users/${id}/roles`, { roles }),
+  availableRoles: () => api.get('/admin/users/roles'),
+};
+
+// Roles API (Admin)
+export const rolesApi = {
+  list: () => api.get('/admin/roles'),
+  get: (id: number) => api.get(`/admin/roles/${id}`),
+  create: (data: { name: string; permissions?: string[] }) => api.post('/admin/roles', data),
+  update: (id: number, data: { name?: string; permissions?: string[] }) => api.put(`/admin/roles/${id}`, data),
+  delete: (id: number) => api.delete(`/admin/roles/${id}`),
+  permissions: () => api.get('/admin/roles/permissions'),
+};

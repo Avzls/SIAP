@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
   Menu,
+  Shield,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -23,6 +24,8 @@ const navigation = [
   { name: 'Permintaan Saya', href: '/requests', icon: FileText },
   { name: 'Persetujuan', href: '/approvals', icon: ClipboardCheck, roles: ['approver', 'super_admin'] },
   { name: 'Pemenuhan', href: '/admin/fulfillment', icon: Users, roles: ['asset_admin', 'super_admin'] },
+  { name: 'Kelola Pengguna', href: '/admin/users', icon: Users, roles: ['super_admin'] },
+  { name: 'Kelola Role', href: '/admin/roles', icon: Shield, roles: ['super_admin'] },
 ];
 
 export function Sidebar() {

@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\AssetMovementController;
 use App\Http\Controllers\Api\AssetRequestController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -107,5 +110,30 @@ Route::middleware('auth:sanctum')->group(function () {
     // =========================================
     Route::prefix('reports')->middleware('role:asset_admin|super_admin')->group(function () {
         Route::get('/movements', [AssetMovementController::class, 'all']);
+    });
+
+    // =========================================
+    // Dashboard
+    // =========================================
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    // =========================================
+    // User & Role Management (Super Admin Only)
+    // =========================================
+    Route::prefix('admin')->middleware('role:super_admin')->group(function () {
+        // Users
+        Route::get('/users', [UserController::class, 'index']);
+        Route::get('/users/roles', [UserController::class, 'availableRoles']);
+        Route::get('/users/{user}', [UserController::class, 'show']);
+        Route::put('/users/{user}', [UserController::class, 'update']);
+        Route::post('/users/{user}/roles', [UserController::class, 'assignRoles']);
+        
+        // Roles
+        Route::get('/roles', [RoleController::class, 'index']);
+        Route::post('/roles', [RoleController::class, 'store']);
+        Route::get('/roles/permissions', [RoleController::class, 'permissions']);
+        Route::get('/roles/{role}', [RoleController::class, 'show']);
+        Route::put('/roles/{role}', [RoleController::class, 'update']);
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
     });
 });
