@@ -18,11 +18,11 @@ import {
 import { useState } from 'react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Assets', href: '/assets', icon: Package },
-  { name: 'My Requests', href: '/requests', icon: FileText },
-  { name: 'Approvals', href: '/approvals', icon: ClipboardCheck, roles: ['approver', 'super_admin'] },
-  { name: 'Fulfillment', href: '/admin/fulfillment', icon: Users, roles: ['asset_admin', 'super_admin'] },
+  { name: 'Beranda', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Aset', href: '/assets', icon: Package },
+  { name: 'Permintaan Saya', href: '/requests', icon: FileText },
+  { name: 'Persetujuan', href: '/approvals', icon: ClipboardCheck, roles: ['approver', 'super_admin'] },
+  { name: 'Pemenuhan', href: '/admin/fulfillment', icon: Users, roles: ['asset_admin', 'super_admin'] },
 ];
 
 export function Sidebar() {
@@ -94,7 +94,7 @@ export function Sidebar() {
           className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition-colors"
         >
           <LogOut size={20} />
-          {!collapsed && <span>Logout</span>}
+          {!collapsed && <span>Keluar</span>}
         </button>
       </div>
     </aside>

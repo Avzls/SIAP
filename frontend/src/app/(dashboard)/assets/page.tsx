@@ -54,14 +54,14 @@ export default function AssetsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Assets</h1>
-          <p className="text-gray-500">Manage and track all company assets</p>
+          <h1 className="text-2xl font-bold text-gray-900">Aset</h1>
+          <p className="text-gray-500">Kelola dan lacak semua aset perusahaan</p>
         </div>
         {isAdmin && (
           <Link href="/assets/new">
             <Button>
               <Plus className="h-4 w-4" />
-              Add Asset
+              Tambah Aset
             </Button>
           </Link>
         )}
@@ -75,7 +75,7 @@ export default function AssetsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name, tag, or serial number..."
+                  placeholder="Cari berdasarkan nama, tag, atau nomor seri..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10"
@@ -88,12 +88,12 @@ export default function AssetsPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="h-10 px-3 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Status</option>
-                <option value="IN_STOCK">In Stock</option>
-                <option value="ASSIGNED">Assigned</option>
-                <option value="IN_REPAIR">In Repair</option>
-                <option value="RETIRED">Retired</option>
-                <option value="LOST">Lost</option>
+                <option value="">Semua Status</option>
+                <option value="IN_STOCK">Tersedia</option>
+                <option value="ASSIGNED">Digunakan</option>
+                <option value="IN_REPAIR">Perbaikan</option>
+                <option value="RETIRED">Tidak Aktif</option>
+                <option value="LOST">Hilang</option>
               </select>
               <Button variant="outline" onClick={() => fetchAssets()}>
                 <Filter className="h-4 w-4" />
@@ -107,23 +107,23 @@ export default function AssetsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg p-4 border border-gray-100">
-          <p className="text-sm text-gray-500">Total Assets</p>
+          <p className="text-sm text-gray-500">Total Aset</p>
           <p className="text-2xl font-bold text-gray-900">{meta.total}</p>
         </div>
         <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-          <p className="text-sm text-green-600">In Stock</p>
+          <p className="text-sm text-green-600">Tersedia</p>
           <p className="text-2xl font-bold text-green-700">
             {assets.filter(a => a.status.value === 'IN_STOCK').length}
           </p>
         </div>
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-          <p className="text-sm text-blue-600">Assigned</p>
+          <p className="text-sm text-blue-600">Digunakan</p>
           <p className="text-2xl font-bold text-blue-700">
             {assets.filter(a => a.status.value === 'ASSIGNED').length}
           </p>
         </div>
         <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
-          <p className="text-sm text-yellow-600">In Repair</p>
+          <p className="text-sm text-yellow-600">Perbaikan</p>
           <p className="text-2xl font-bold text-yellow-700">
             {assets.filter(a => a.status.value === 'IN_REPAIR').length}
           </p>
@@ -143,25 +143,25 @@ export default function AssetsPage() {
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Asset
+                      Aset
                     </th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
+                      Kategori
                     </th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Holder
+                      Pemegang
                     </th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Location
+                      Lokasi
                     </th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Value
+                      Nilai
                     </th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                      Aksi
                     </th>
                   </tr>
                 </thead>
@@ -218,7 +218,7 @@ export default function AssetsPage() {
                   {assets.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                        No assets found
+                        Tidak ada aset ditemukan
                       </td>
                     </tr>
                   )}
@@ -237,17 +237,17 @@ export default function AssetsPage() {
             disabled={meta.current_page === 1}
             onClick={() => fetchAssets(meta.current_page - 1)}
           >
-            Previous
+            Sebelumnya
           </Button>
           <span className="flex items-center px-4 text-sm text-gray-600">
-            Page {meta.current_page} of {meta.last_page}
+            Halaman {meta.current_page} dari {meta.last_page}
           </span>
           <Button
             variant="outline"
             disabled={meta.current_page === meta.last_page}
             onClick={() => fetchAssets(meta.current_page + 1)}
           >
-            Next
+            Selanjutnya
           </Button>
         </div>
       )}

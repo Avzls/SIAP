@@ -50,7 +50,7 @@ export default function ApprovalsPage() {
   };
 
   const handleReject = async (requestId: number) => {
-    const reason = prompt('Reason for rejection:');
+    const reason = prompt('Alasan penolakan:');
     if (!reason) return;
     
     setProcessing(requestId);
@@ -70,8 +70,8 @@ export default function ApprovalsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Approvals</h1>
-        <p className="text-gray-500">Review and approve asset requests</p>
+        <h1 className="text-2xl font-bold text-gray-900">Persetujuan</h1>
+        <p className="text-gray-500">Tinjau dan setujui permintaan aset</p>
       </div>
 
       {/* Tabs */}
@@ -80,13 +80,13 @@ export default function ApprovalsPage() {
           variant={activeTab === 'pending' ? 'default' : 'outline'}
           onClick={() => setActiveTab('pending')}
         >
-          Pending ({pending.length})
+          Menunggu ({pending.length})
         </Button>
         <Button
           variant={activeTab === 'history' ? 'default' : 'outline'}
           onClick={() => setActiveTab('history')}
         >
-          History
+          Riwayat
         </Button>
       </div>
 
@@ -127,16 +127,16 @@ export default function ApprovalsPage() {
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-600">
-                          <strong>Type:</strong> {request.request_type.label}
+                          <strong>Jenis:</strong> {request.request_type.label}
                         </p>
                         {request.justification && (
                           <p className="text-sm text-gray-600 mt-1">
-                            <strong>Justification:</strong> {request.justification}
+                            <strong>Alasan:</strong> {request.justification}
                           </p>
                         )}
                         {request.items && request.items.length > 0 && (
                           <div className="mt-2">
-                            <p className="text-sm text-gray-600"><strong>Items:</strong></p>
+                            <p className="text-sm text-gray-600"><strong>Item:</strong></p>
                             <ul className="list-disc list-inside text-sm text-gray-500 mt-1">
                               {request.items.map((item, idx) => (
                                 <li key={idx}>
@@ -148,7 +148,7 @@ export default function ApprovalsPage() {
                           </div>
                         )}
                         <p className="text-xs text-gray-400 mt-2">
-                          Submitted: {formatDateTime(request.created_at)}
+                          Diajukan: {formatDateTime(request.created_at)}
                         </p>
                       </div>
                     </div>
@@ -164,7 +164,7 @@ export default function ApprovalsPage() {
                           isLoading={processing === request.id}
                         >
                           <CheckCircle className="h-4 w-4" />
-                          Approve
+                          Setujui
                         </Button>
                         <Button
                           variant="destructive"
@@ -173,7 +173,7 @@ export default function ApprovalsPage() {
                           disabled={processing === request.id}
                         >
                           <XCircle className="h-4 w-4" />
-                          Reject
+                          Tolak
                         </Button>
                       </div>
                     )}
@@ -185,8 +185,8 @@ export default function ApprovalsPage() {
                   <ClipboardCheck className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">
                     {activeTab === 'pending'
-                      ? 'No pending approvals'
-                      : 'No approval history'}
+                      ? 'Tidak ada persetujuan yang menunggu'
+                      : 'Tidak ada riwayat persetujuan'}
                   </p>
                 </div>
               )}

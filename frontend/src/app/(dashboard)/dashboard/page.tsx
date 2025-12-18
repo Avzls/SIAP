@@ -83,14 +83,14 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user?.name?.split(' ')[0]}!
+            Selamat datang, {user?.name?.split(' ')[0]}!
           </h1>
-          <p className="text-gray-500">Here&apos;s what&apos;s happening with your assets today.</p>
+          <p className="text-gray-500">Berikut ringkasan aset Anda hari ini.</p>
         </div>
         <Link href="/requests/new">
           <Button>
             <Plus className="h-4 w-4" />
-            New Request
+            Buat Permintaan
           </Button>
         </Link>
       </div>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Assets</p>
+                <p className="text-sm font-medium text-gray-500">Total Aset</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalAssets}</p>
               </div>
               <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -111,7 +111,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1 mt-4 text-sm">
               <TrendingUp className="h-4 w-4 text-green-500" />
               <span className="text-green-600 font-medium">+12%</span>
-              <span className="text-gray-400">from last month</span>
+              <span className="text-gray-400">dari bulan lalu</span>
             </div>
           </CardContent>
         </Card>
@@ -120,14 +120,14 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">My Requests</p>
+                <p className="text-sm font-medium text-gray-500">Permintaan Saya</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">{stats.pendingRequests}</p>
               </div>
               <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
                 <FileText className="h-6 w-6 text-purple-600" />
               </div>
             </div>
-            <p className="text-sm text-gray-400 mt-4">Active requests</p>
+            <p className="text-sm text-gray-400 mt-4">Permintaan aktif</p>
           </CardContent>
         </Card>
 
@@ -136,7 +136,7 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Pending Approvals</p>
+                  <p className="text-sm font-medium text-gray-500">Menunggu Persetujuan</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">{stats.pendingApprovals}</p>
                 </div>
                 <div className="h-12 w-12 bg-yellow-100 rounded-xl flex items-center justify-center">
@@ -144,7 +144,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <Link href="/approvals" className="text-sm text-blue-600 hover:underline mt-4 inline-block">
-                Review now →
+                Tinjau sekarang →
               </Link>
             </CardContent>
           </Card>
@@ -156,10 +156,10 @@ export default function DashboardPage() {
         {/* Recent Assets */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Assets</CardTitle>
+            <CardTitle>Aset Terbaru</CardTitle>
             <Link href="/assets">
               <Button variant="ghost" size="sm">
-                View all <ArrowRight className="h-4 w-4 ml-1" />
+                Lihat semua <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </Link>
           </CardHeader>
@@ -186,7 +186,7 @@ export default function DashboardPage() {
                 </Link>
               ))}
               {recentAssets.length === 0 && (
-                <p className="p-4 text-center text-gray-500">No assets found</p>
+                <p className="p-4 text-center text-gray-500">Tidak ada aset ditemukan</p>
               )}
             </div>
           </CardContent>
@@ -195,10 +195,10 @@ export default function DashboardPage() {
         {/* Recent Requests */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>My Requests</CardTitle>
+            <CardTitle>Permintaan Saya</CardTitle>
             <Link href="/requests">
               <Button variant="ghost" size="sm">
-                View all <ArrowRight className="h-4 w-4 ml-1" />
+                Lihat semua <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </Link>
           </CardHeader>
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                 </Link>
               ))}
               {recentRequests.length === 0 && (
-                <p className="p-4 text-center text-gray-500">No requests yet</p>
+                <p className="p-4 text-center text-gray-500">Belum ada permintaan</p>
               )}
             </div>
           </CardContent>

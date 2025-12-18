@@ -36,11 +36,13 @@ export default function RequestDetailPage() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [showApprovalPanel, setShowApprovalPanel] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const fetchRequest = async () => {
     try {
-      const { data } = await requestsApi.get(Number(id));
-      setRequest(data);
+      const response = await requestsApi.get(Number(id));
+      // API returns { data: { id, status, ... } }, so access response.data.data
+      setRequest(response.data.data);
     } catch (err) {
       console.error('Failed to fetch request:', err);
     } finally {
@@ -48,9 +50,16 @@ export default function RequestDetailPage() {
     }
   };
 
+  // Wait for client-side hydration before fetching
   useEffect(() => {
-    fetchRequest();
-  }, [id]);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchRequest();
+    }
+  }, [id, mounted]);
 
   const handleSubmit = async () => {
     if (!confirm('Submit request ini untuk approval?')) return;
@@ -125,9 +134,9 @@ export default function RequestDetailPage() {
   if (!request) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Request not found</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Permintaan tidak ditemukan</h2>
         <Button className="mt-4" onClick={() => router.back()}>
-          Go Back
+          Kembali
         </Button>
       </div>
     );
@@ -142,7 +151,7 @@ export default function RequestDetailPage() {
       {/* Breadcrumb / Back */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <button onClick={() => router.push('/requests')} className="hover:text-blue-600">Requests</button>
+          <button onClick={() => router.push('/requests')} className="hover:text-blue-600">Permintaan</button>
           <ChevronRight className="w-4 h-4" />
           <span className="font-medium text-gray-900">{request.request_number}</span>
         </div>
@@ -150,18 +159,18 @@ export default function RequestDetailPage() {
           {request.can_submit && (
             <Button onClick={handleSubmit} isLoading={isActionLoading}>
               <Send className="w-4 h-4 mr-2" />
-              Submit Request
+              Ajukan Permintaan
             </Button>
           )}
           {request.can_cancel && (
             <Button variant="outline" onClick={handleCancel} isLoading={isActionLoading} className="text-red-600 border-red-200 hover:bg-red-50">
               <Trash2 className="w-4 h-4 mr-2" />
-              Cancel
+              Batalkan
             </Button>
           )}
           {isPendingApprovalByMe && !showApprovalPanel && (
             <Button onClick={() => setShowApprovalPanel(true)} className="bg-indigo-600 hover:bg-indigo-700">
-              Process Approval
+              Proses Persetujuan
             </Button>
           )}
         </div>
@@ -198,10 +207,10 @@ export default function RequestDetailPage() {
 
                 {/* Steps */}
                 {[
-                  { key: 'DRAFT', label: 'Draft', icon: FileText },
-                  { key: 'PENDING_APPROVAL', label: 'Approval', icon: Clock },
-                  { key: 'APPROVED', label: 'Processing', icon: Package },
-                  { key: 'FULFILLED', label: 'Done', icon: CheckCircle2 },
+                  { key: 'DRAFT', label: 'Draf', icon: FileText },
+                  { key: 'PENDING_APPROVAL', label: 'Persetujuan', icon: Clock },
+                  { key: 'APPROVED', label: 'Diproses', icon: Package },
+                  { key: 'FULFILLED', label: 'Selesai', icon: CheckCircle2 },
                 ].map((step, idx) => {
                   const isActive = request.status.value === step.key;
                   const isDone = ['SUBMITTED', 'PENDING_APPROVAL', 'APPROVED', 'PENDING_FULFILLMENT', 'FULFILLED', 'CLOSED'].includes(request.status.value) && idx === 0 
@@ -228,20 +237,20 @@ export default function RequestDetailPage() {
           </Card>
 
           {/* Request Info */}
-          <Card title="Request Information">
+          <Card title="Informasi Permintaan">
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase">Request Type</p>
+                  <p className="text-xs font-medium text-gray-500 uppercase">Jenis Permintaan</p>
                   <p className="text-sm font-bold text-gray-900">{request.request_type.label}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase">Created Date</p>
+                  <p className="text-xs font-medium text-gray-500 uppercase">Tanggal Dibuat</p>
                   <p className="text-sm font-bold text-gray-900">{format(new Date(request.created_at), 'dd MMM yyyy, HH:mm')}</p>
                 </div>
               </div>
               <div className="pt-4 border-t border-gray-100">
-                <p className="text-xs font-medium text-gray-500 uppercase mb-2">Justification / Reason</p>
+                <p className="text-xs font-medium text-gray-500 uppercase mb-2">Alasan / Justifikasi</p>
                 <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-700 leading-relaxed italic">
                   &ldquo;{request.justification || 'Tidak ada keterangan tambahan.'}&rdquo;
                 </div>
@@ -250,13 +259,13 @@ export default function RequestDetailPage() {
           </Card>
 
           {/* Items */}
-          <Card title="Requested Items">
+          <Card title="Item yang Diminta">
             <div className="p-0">
                <table className="w-full text-left">
                  <thead className="bg-gray-50 border-b border-gray-100">
                    <tr>
-                     <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Description</th>
-                     <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">Qty</th>
+                     <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Deskripsi</th>
+                     <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">Jml</th>
                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
                    </tr>
                  </thead>
@@ -270,7 +279,7 @@ export default function RequestDetailPage() {
                            </div>
                            <div>
                              <p className="text-sm font-bold text-gray-900">{item.description}</p>
-                             <p className="text-xs text-gray-500">{item.specifications || 'Any standard specs'}</p>
+                             <p className="text-xs text-gray-500">{item.specifications || 'Spesifikasi standar'}</p>
                            </div>
                          </div>
                        </td>
@@ -284,7 +293,7 @@ export default function RequestDetailPage() {
                              {item.fulfilled_asset?.asset_tag}
                            </div>
                          ) : (
-                           <span className="text-xs text-gray-400 font-medium">Pending fulfillment</span>
+                           <span className="text-xs text-gray-400 font-medium">Menunggu pemenuhan</span>
                          )}
                        </td>
                      </tr>
@@ -316,14 +325,14 @@ export default function RequestDetailPage() {
           {showApprovalPanel && (
             <Card className="ring-2 ring-indigo-500 shadow-2xl overflow-hidden">
                <div className="bg-indigo-600 px-6 py-3 flex justify-between items-center">
-                 <h3 className="text-white font-bold text-sm">Action Approval</h3>
+                 <h3 className="text-white font-bold text-sm">Aksi Persetujuan</h3>
                  <button onClick={() => setShowApprovalPanel(false)} className="text-indigo-200 hover:text-white">
                    <X className="w-4 h-4" />
                  </button>
                </div>
                <div className="p-6 space-y-4">
                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Catatan / Remarks</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Catatan</label>
                     <textarea 
                       value={remarks}
                       onChange={(e) => setRemarks(e.target.value)}
@@ -334,11 +343,11 @@ export default function RequestDetailPage() {
                  <div className="grid grid-cols-2 gap-3">
                     <Button variant="outline" onClick={handleReject} isLoading={isActionLoading} className="text-red-600 border-red-200 hover:bg-red-50">
                       <X className="w-4 h-4 mr-2" />
-                      Reject
+                      Tolak
                     </Button>
                     <Button onClick={handleApprove} isLoading={isActionLoading} className="bg-green-600 hover:bg-green-700">
                       <Check className="w-4 h-4 mr-2" />
-                      Approve
+                      Setujui
                     </Button>
                  </div>
                </div>
@@ -346,7 +355,7 @@ export default function RequestDetailPage() {
           )}
 
           {/* Requester Info */}
-          <Card title="Requester">
+          <Card title="Pemohon">
             <div className="p-6">
                <div className="flex items-center space-x-4">
                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
@@ -361,7 +370,7 @@ export default function RequestDetailPage() {
           </Card>
 
           {/* Approval Workflow */}
-          <Card title="Approval History">
+          <Card title="Riwayat Persetujuan">
             <div className="p-6">
               {request.approvals && request.approvals.length > 0 ? (
                 <div className="space-y-6">
@@ -401,7 +410,7 @@ export default function RequestDetailPage() {
               ) : (
                 <div className="text-center py-4">
                   <AlertCircle className="mx-auto h-8 w-8 text-gray-300" />
-                  <p className="text-xs text-gray-500 mt-2">No approvals recorded yet.</p>
+                  <p className="text-xs text-gray-500 mt-2">Belum ada riwayat persetujuan.</p>
                 </div>
               )}
             </div>
@@ -409,8 +418,8 @@ export default function RequestDetailPage() {
 
           {/* Timeline / System Info */}
           <div className="text-center px-6">
-             <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-1">System Audit</p>
-             <p className="text-[10px] text-gray-400">Request ID: {request.id} • Created by {request.requester?.name}</p>
+             <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-1">Audit Sistem</p>
+             <p className="text-[10px] text-gray-400">ID Permintaan: {request.id} • Dibuat oleh {request.requester?.name}</p>
           </div>
         </div>
       </div>

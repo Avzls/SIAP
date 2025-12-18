@@ -87,28 +87,28 @@ export default function NewRequestPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">New Request</h1>
-          <p className="text-gray-500">Request a new asset or service</p>
+          <h1 className="text-2xl font-bold text-gray-900">Permintaan Baru</h1>
+          <p className="text-gray-500">Ajukan permintaan aset atau layanan baru</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Request Details</CardTitle>
+            <CardTitle>Detail Permintaan</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Request Type */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Request Type
+                Jenis Permintaan
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {[
-                  { value: 'NEW', label: 'New Asset' },
-                  { value: 'RETURN', label: 'Return Asset' },
-                  { value: 'REPAIR', label: 'Repair Asset' },
-                  { value: 'TRANSFER', label: 'Transfer Asset' },
+                  { value: 'NEW', label: 'Aset Baru' },
+                  { value: 'RETURN', label: 'Pengembalian' },
+                  { value: 'REPAIR', label: 'Perbaikan' },
+                  { value: 'TRANSFER', label: 'Transfer' },
                 ].map((type) => (
                   <button
                     key={type.value}
@@ -129,14 +129,14 @@ export default function NewRequestPage() {
             {/* Justification */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Justification / Reason
+                Alasan / Justifikasi
               </label>
               <textarea
                 value={formData.justification}
                 onChange={(e) => setFormData({ ...formData, justification: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Explain why you need this asset..."
+                placeholder="Jelaskan mengapa Anda membutuhkan aset ini..."
               />
             </div>
 
@@ -144,11 +144,11 @@ export default function NewRequestPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-medium text-gray-700">
-                  Items Requested
+                  Item yang Diminta
                 </label>
                 <Button type="button" variant="outline" size="sm" onClick={addItem}>
                   <Plus className="h-4 w-4" />
-                  Add Item
+                  Tambah Item
                 </Button>
               </div>
 
@@ -176,12 +176,12 @@ export default function NewRequestPage() {
                       onChange={(e) => updateItem(index, 'category_id', e.target.value)}
                       className="h-10 px-3 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="">Select Category</option>
-                      <option value="1">IT Equipment</option>
-                      <option value="2">Mobile Devices</option>
-                      <option value="3">Office Equipment</option>
-                      <option value="4">Vehicles</option>
-                      <option value="5">Tools & Equipment</option>
+                      <option value="">Pilih Kategori</option>
+                      <option value="1">Peralatan IT</option>
+                      <option value="2">Perangkat Mobile</option>
+                      <option value="3">Peralatan Kantor</option>
+                      <option value="4">Kendaraan</option>
+                      <option value="5">Alat & Perlengkapan</option>
                     </select>
 
                     <Input
@@ -189,13 +189,13 @@ export default function NewRequestPage() {
                       min="1"
                       value={item.quantity}
                       onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                      placeholder="Qty"
+                      placeholder="Jml"
                     />
 
                     <Input
                       value={item.specifications}
                       onChange={(e) => updateItem(index, 'specifications', e.target.value)}
-                      placeholder="Specifications"
+                      placeholder="Spesifikasi"
                     />
                   </div>
                 </div>
@@ -214,7 +214,7 @@ export default function NewRequestPage() {
         <div className="flex justify-end gap-3 mt-6">
           <Link href="/requests">
             <Button type="button" variant="outline">
-              Cancel
+              Batal
             </Button>
           </Link>
           <Button
@@ -222,14 +222,14 @@ export default function NewRequestPage() {
             variant="secondary"
             isLoading={loading}
           >
-            Save as Draft
+            Simpan sebagai Draf
           </Button>
           <Button
             type="button"
             onClick={(e) => handleSubmit(e, true)}
             isLoading={loading}
           >
-            Submit for Approval
+            Ajukan untuk Persetujuan
           </Button>
         </div>
       </form>

@@ -51,13 +51,13 @@ export default function RequestsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Requests</h1>
-          <p className="text-gray-500">Track and manage your asset requests</p>
+          <h1 className="text-2xl font-bold text-gray-900">Permintaan Saya</h1>
+          <p className="text-gray-500">Lacak dan kelola permintaan aset Anda</p>
         </div>
         <Link href="/requests/new">
           <Button>
             <Plus className="h-4 w-4" />
-            New Request
+            Buat Permintaan
           </Button>
         </Link>
       </div>
@@ -87,7 +87,7 @@ export default function RequestsPage() {
       {/* Requests List */}
       <Card>
         <CardHeader>
-          <CardTitle>All Requests</CardTitle>
+          <CardTitle>Semua Permintaan</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -120,7 +120,7 @@ export default function RequestsPage() {
                       </span>
                       {request.items && request.items.length > 0 && (
                         <span className="text-sm text-gray-400">
-                          • {request.items.length} item(s)
+                          • {request.items.length} item
                         </span>
                       )}
                     </div>
@@ -135,7 +135,7 @@ export default function RequestsPage() {
                       {formatDateTime(request.created_at)}
                     </p>
                     {request.can_submit && (
-                      <span className="text-xs text-blue-600">Ready to submit</span>
+                      <span className="text-xs text-blue-600">Siap diajukan</span>
                     )}
                   </div>
                 </Link>
@@ -143,10 +143,10 @@ export default function RequestsPage() {
               {requests.length === 0 && (
                 <div className="p-12 text-center">
                   <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No requests found</p>
+                  <p className="text-gray-500">Tidak ada permintaan ditemukan</p>
                   <Link href="/requests/new">
                     <Button variant="outline" className="mt-4">
-                      Create your first request
+                      Buat permintaan pertama Anda
                     </Button>
                   </Link>
                 </div>

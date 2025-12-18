@@ -36,12 +36,19 @@ export default function AssetDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [isMovementsLoading, setIsMovementsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Wait for client-side hydration before fetching
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchAsset = async () => {
       try {
-        const { data } = await assetsApi.get(id as string);
-        setAsset(data);
+        const response = await assetsApi.get(id as string);
+        // API returns { data: { id, status, ... } }, so access response.data.data
+        setAsset(response.data.data);
       } catch (err) {
         console.error('Failed to fetch asset:', err);
       } finally {
@@ -49,8 +56,10 @@ export default function AssetDetailPage() {
       }
     };
 
-    fetchAsset();
-  }, [id]);
+    if (mounted) {
+      fetchAsset();
+    }
+  }, [id, mounted]);
 
   useEffect(() => {
     if (activeTab === 'history' && movements.length === 0) {
@@ -81,9 +90,9 @@ export default function AssetDetailPage() {
   if (!asset) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Asset not found</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Aset tidak ditemukan</h2>
         <Button className="mt-4" onClick={() => router.back()}>
-          Go Back
+          Kembali
         </Button>
       </div>
     );
@@ -96,7 +105,7 @@ export default function AssetDetailPage() {
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            Kembali
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{asset.name}</h1>
@@ -108,10 +117,10 @@ export default function AssetDetailPage() {
         </div>
         <div className="flex space-x-3">
           <Button variant="outline">
-            Edit Asset
+            Edit Aset
           </Button>
           {asset.status.value === 'IN_STOCK' && (
-            <Button>Assign Asset</Button>
+            <Button>Tetapkan Pemegang</Button>
           )}
         </div>
       </div>
@@ -120,9 +129,9 @@ export default function AssetDetailPage() {
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           {[
-            { id: 'overview', label: 'Overview', icon: Info },
-            { id: 'history', label: 'Movement History', icon: History },
-            { id: 'attachments', label: 'Attachments', icon: Paperclip },
+            { id: 'overview', label: 'Ringkasan', icon: Info },
+            { id: 'history', label: 'Riwayat Perpindahan', icon: History },
+            { id: 'attachments', label: 'Lampiran', icon: Paperclip },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -147,7 +156,7 @@ export default function AssetDetailPage() {
           {activeTab === 'overview' && (
             <>
               {/* Main Info */}
-              <Card title="Asset Information">
+              <Card title="Informasi Aset">
                 <div className="grid grid-cols-2 gap-6 p-6">
                   <div className="space-y-4">
                     <div className="flex items-start space-x-3">
@@ -155,7 +164,7 @@ export default function AssetDetailPage() {
                         <Tag className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase">Category</p>
+                        <p className="text-xs font-medium text-gray-500 uppercase">Kategori</p>
                         <p className="text-sm font-semibold text-gray-900">{asset.category?.name || '-'}</p>
                       </div>
                     </div>
@@ -164,7 +173,7 @@ export default function AssetDetailPage() {
                         <Box className="w-5 h-5 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase">Brand / Model</p>
+                        <p className="text-xs font-medium text-gray-500 uppercase">Merek / Model</p>
                         <p className="text-sm font-semibold text-gray-900">
                           {asset.brand && asset.model ? `${asset.brand} ${asset.model}` : (asset.brand || asset.model || '-')}
                         </p>
@@ -175,7 +184,7 @@ export default function AssetDetailPage() {
                         <Hash className="w-5 h-5 text-orange-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase">Serial Number</p>
+                        <p className="text-xs font-medium text-gray-500 uppercase">Nomor Seri</p>
                         <p className="text-sm font-bold font-mono text-gray-900">{asset.serial_number || '-'}</p>
                       </div>
                     </div>
@@ -186,7 +195,7 @@ export default function AssetDetailPage() {
                         <Calendar className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase">Purchase Date</p>
+                        <p className="text-xs font-medium text-gray-500 uppercase">Tanggal Pembelian</p>
                         <p className="text-sm font-semibold text-gray-900">
                           {asset.purchase_date ? format(new Date(asset.purchase_date), 'dd MMM yyyy') : '-'}
                         </p>
@@ -197,7 +206,7 @@ export default function AssetDetailPage() {
                         <DollarSign className="w-5 h-5 text-yellow-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase">Purchase Price</p>
+                        <p className="text-xs font-medium text-gray-500 uppercase">Harga Pembelian</p>
                         <p className="text-sm font-semibold text-gray-900">{asset.purchase_price || '-'}</p>
                       </div>
                     </div>
@@ -206,11 +215,11 @@ export default function AssetDetailPage() {
                         <ShieldCheck className="w-5 h-5 text-indigo-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase">Warranty End</p>
+                        <p className="text-xs font-medium text-gray-500 uppercase">Garansi Berakhir</p>
                         <p className="text-sm font-semibold text-gray-900">
                           {asset.warranty_end ? format(new Date(asset.warranty_end), 'dd MMM yyyy') : '-'}
                           {asset.is_under_warranty && (
-                            <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Active</span>
+                            <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Aktif</span>
                           )}
                         </p>
                       </div>
@@ -220,7 +229,7 @@ export default function AssetDetailPage() {
               </Card>
 
               {/* Specifications */}
-              <Card title="Specifications">
+              <Card title="Spesifikasi">
                 <div className="p-6">
                   {asset.specifications && Object.keys(asset.specifications).length > 0 ? (
                     <div className="grid grid-cols-2 gap-4">
@@ -232,7 +241,7 @@ export default function AssetDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">No specifications provided.</p>
+                    <p className="text-sm text-gray-500">Tidak ada spesifikasi.</p>
                   )}
                 </div>
               </Card>
@@ -240,7 +249,7 @@ export default function AssetDetailPage() {
           )}
 
           {activeTab === 'history' && (
-            <Card title="Movement History">
+            <Card title="Riwayat Perpindahan">
               <div className="p-6">
                 {isMovementsLoading ? (
                   <div className="flex justify-center py-8">
@@ -287,22 +296,22 @@ export default function AssetDetailPage() {
                     </ul>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">No movement history found.</p>
+                  <p className="text-sm text-gray-500 text-center py-4">Tidak ada riwayat perpindahan.</p>
                 )}
               </div>
             </Card>
           )}
 
           {activeTab === 'attachments' && (
-            <Card title="Attachments">
+            <Card title="Lampiran">
               <div className="p-6 text-center py-12">
                 <Paperclip className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No attachments</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by uploading a photo or document.</p>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada lampiran</h3>
+                <p className="mt-1 text-sm text-gray-500">Unggah foto atau dokumen untuk memulai.</p>
                 <div className="mt-6">
                   <Button variant="outline">
                     <Paperclip className="w-4 h-4 mr-2" />
-                    Upload File
+                    Unggah File
                   </Button>
                 </div>
               </div>
@@ -313,7 +322,7 @@ export default function AssetDetailPage() {
         {/* Sidebar Info */}
         <div className="space-y-6">
           {/* Current Holder */}
-          <Card title="Current Holder">
+          <Card title="Pemegang Saat Ini">
             <div className="p-6">
               {asset.current_user ? (
                 <div className="flex items-center space-x-4">
@@ -324,21 +333,21 @@ export default function AssetDetailPage() {
                     <h4 className="text-sm font-bold text-gray-900">{asset.current_user.name}</h4>
                     <p className="text-xs text-gray-500">NIK: {asset.current_user.nopeg}</p>
                     <div className="flex mt-2">
-                       <Button size="sm" variant="outline" className="h-7 text-xs">View User</Button>
+                       <Button size="sm" variant="outline" className="h-7 text-xs">Lihat User</Button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-4">
                   <User className="mx-auto h-8 w-8 text-gray-300" />
-                  <p className="text-sm text-gray-500 mt-2">In Warehouse / No holder</p>
+                  <p className="text-sm text-gray-500 mt-2">Di Gudang / Tidak ada pemegang</p>
                 </div>
               )}
             </div>
           </Card>
 
           {/* Current Location */}
-          <Card title="Current Location">
+          <Card title="Lokasi Saat Ini">
             <div className="p-6">
               {asset.current_location ? (
                 <div className="flex items-start space-x-3">
@@ -347,21 +356,21 @@ export default function AssetDetailPage() {
                     <h4 className="text-sm font-bold text-gray-900">{asset.current_location.name}</h4>
                     <p className="text-xs text-gray-500 mt-1">{asset.current_location.code}</p>
                     <div className="mt-3 flex space-x-2">
-                       <Button size="sm" variant="outline" className="h-7 text-xs">Change Location</Button>
+                       <Button size="sm" variant="outline" className="h-7 text-xs">Ubah Lokasi</Button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-4">
                   <MapPin className="mx-auto h-8 w-8 text-gray-300" />
-                  <p className="text-sm text-gray-500 mt-2">Location not assigned</p>
+                  <p className="text-sm text-gray-500 mt-2">Lokasi belum ditetapkan</p>
                 </div>
               )}
             </div>
           </Card>
 
           {/* QR Code */}
-          <Card title="Asset Label">
+          <Card title="Label Aset">
             <div className="p-6 text-center">
               <div className="bg-gray-50 p-4 rounded-xl inline-block mb-4 border-2 border-dashed border-gray-200">
                 {/* Mock QR */}
@@ -374,9 +383,9 @@ export default function AssetDetailPage() {
                   <div className="absolute inset-0 border-2 border-slate-900 opacity-20"></div>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mb-4">Print this label to attach on the asset.</p>
+              <p className="text-xs text-gray-500 mb-4">Cetak label ini untuk ditempel pada aset.</p>
               <Button variant="outline" className="w-full" size="sm">
-                Print QR Label
+                Cetak Label QR
               </Button>
             </div>
           </Card>
