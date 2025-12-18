@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: siap_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+    networks:
+      - siap_network
+
+  php:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: siap_php
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - PHP_MEMORY_LIMIT=256M
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - siap_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: siap_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-asset_management}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_USER: ${DB_USERNAME:-siap}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - siap_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: siap_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - siap_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Queue worker with Horizon
+  horizon:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: siap_horizon
+    restart: unless-stopped
+    command: php artisan horizon
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - php
+      - redis
+    networks:
+      - siap_network
+
+  # Scheduler
+  scheduler:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: siap_scheduler
+    restart: unless-stopped
+    command: php artisan schedule:work
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - php
+    networks:
+      - siap_network
+
+  # Optional: MinIO for file storage
+  minio:
+    image: minio/minio
+    container_name: siap_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_KEY:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET:-minio123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - siap_network
+    profiles:
+      - storage
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  siap_network:
+    driver: bridge
