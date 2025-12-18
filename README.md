@@ -1,59 +1,97 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SIAP - Sistem Informasi Aset Perusahaan
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+SIAP adalah aplikasi Manajemen Aset (Asset Management System) internal yang dirancang untuk mengelola inventaris perusahaan secara efisien, mulai dari pengadaan, peminjaman, perbaikan, hingga penghapusan aset. Sistem ini terintegrasi langsung dengan database HRIS untuk sinkronisasi data karyawan secara otomatis.
 
-## About Laravel
+## 🚀 Fitur Utama
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Dashboard Real-time**: Ringkasan status aset dan aktivitas terbaru.
+- **Manajemen Aset**: Inventaris lengkap dengan kategori, lokasi, dan riwayat pergerakan (Audit Trail).
+- **Self-Service Request**: Karyawan dapat mengajukan permintaan aset, perbaikan, atau pengembalian melalui aplikasi.
+- **Workflow Approval**: Alur persetujuan bertingkat dari Manager hingga Admin Aset.
+- **HRIS Sync**: Otomasi data karyawan dari database SQL Server HRIS.
+- **Keamanan**: Autentikasi menggunakan No. Pegawai dan Password dengan role-based access control (RBAC).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🛠️ Tech Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Backend
+- **Framework**: Laravel 12
+- **Database Utama**: MySQL (Data Aset & Aplikasi)
+- **Database Eksternal**: SQL Server (Sinkronisasi HRIS)
+- **Authentication**: Laravel Sanctum (Token-based)
+- **Role Management**: Spatie Laravel-Permission
 
-## Learning Laravel
+### Frontend
+- **Framework**: Next.js 16 (App Router)
+- **Bahasa**: TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Icons**: Lucide React
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## ⚙️ Instalasi
 
-## Laravel Sponsors
+### Prasyarat
+- PHP 8.3+
+- Node.js 20+
+- Composer
+- Laragon / XAMPP / MySQL Server
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 1. Persiapan Backend
+```bash
+# Masuk ke folder root
+cd SIAP
 
-### Premium Partners
+# Install dependensi
+composer install
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Copy .env dan sesuaikan database
+cp .env.example .env
+php artisan key:generate
 
-## Contributing
+# Jalankan migrasi dan seeder awal
+php artisan migrate --seed
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+**Konfigurasi HRIS (Jika perlu sync):**
+Update di `.env`:
+- `HRISDB_HOST`: Host SQL Server
+- `HRISDB_DATABASE`: Nama database HRIS
+- Jalankan sync: `php artisan hris:sync-users`
 
-## Code of Conduct
+### 2. Persiapan Frontend
+```bash
+# Masuk ke folder frontend
+cd frontend
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Install dependensi
+npm install
 
-## Security Vulnerabilities
+# Jalankan mode development
+npm run dev
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 🔐 Akun Demo
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Gunakan kredensial berikut untuk mencoba berbagai Role (Password default: `password123`):
+
+| No. Pegawai | Nama | Role | Akses Utama |
+|-------------|------|------|-------------|
+| **ADM001** | Admin Asset | Asset Admin | Kelola aset & pemenuhan request |
+| **MGR001** | Manager | Approver | Menyetujui/Menolak request |
+| **EMP001** | Employee | Employee | Input Request aset |
+| **SPA001** | Super Admin | Super Admin | Full system access |
+
+---
+
+## 📂 Struktur Folder
+- `/app`, `/routes`, `/database`: Laravel Backend logic.
+- `/frontend`: Next.js Frontend application.
+- `/docker`: Konfigurasi deployment kontainer.
+
+---
+
+## 📄 Lisensi
+Sistem ini dikembangkan secara internal untuk kebutuhan manajemen aset perusahaan.
