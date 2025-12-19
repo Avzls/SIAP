@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 
 interface Movement {
   id: number;
-  movement_type: string;
+  movement_type: string | { value: string; label: string };
   asset: {
     id: number;
     asset_tag: string;
@@ -45,6 +45,12 @@ const movementTypeLabels: Record<string, { label: string; color: string }> = {
   RETIRE: { label: 'Retire', color: 'bg-gray-100 text-gray-700' },
   LOST: { label: 'Lost', color: 'bg-red-100 text-red-700' },
   FOUND: { label: 'Found', color: 'bg-emerald-100 text-emerald-700' },
+};
+
+// Helper to get movement type value (handles both string and object)
+const getMovementTypeValue = (type: string | { value: string; label: string }): string => {
+  if (typeof type === 'string') return type;
+  return type.value || '';
 };
 
 export default function MovementsReportPage() {
@@ -162,8 +168,9 @@ export default function MovementsReportPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {movements.map((movement) => {
-                    const typeConfig = movementTypeLabels[movement.movement_type] || { 
-                      label: movement.movement_type, 
+                    const typeValue = getMovementTypeValue(movement.movement_type);
+                    const typeConfig = movementTypeLabels[typeValue] || { 
+                      label: typeValue || 'Unknown', 
                       color: 'bg-gray-100 text-gray-700' 
                     };
                     return (
