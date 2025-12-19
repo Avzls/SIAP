@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Tag, Plus, Edit, Trash2, X, Check, Search } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Category {
   id: number;
@@ -90,7 +91,7 @@ export default function CategoriesPage() {
       const errorMessage = axiosError.response?.data?.message 
         || Object.values(axiosError.response?.data?.errors || {}).flat().join(', ')
         || 'Gagal menyimpan kategori';
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -98,7 +99,7 @@ export default function CategoriesPage() {
 
   const handleDelete = async (category: Category) => {
     if (category.assets_count > 0) {
-      alert(`Kategori tidak dapat dihapus karena masih memiliki ${category.assets_count} aset`);
+      toast.warning(`Kategori tidak dapat dihapus karena masih memiliki ${category.assets_count} aset`);
       return;
     }
     if (!confirm(`Hapus kategori "${category.name}"?`)) return;
@@ -107,7 +108,7 @@ export default function CategoriesPage() {
       fetchCategories();
     } catch (error) {
       console.error('Failed to delete category:', error);
-      alert('Gagal menghapus kategori');
+      toast.error('Gagal menghapus kategori');
     }
   };
 

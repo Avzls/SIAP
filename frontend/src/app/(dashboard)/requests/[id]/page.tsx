@@ -26,6 +26,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function RequestDetailPage() {
   const { id } = useParams();
@@ -69,7 +70,7 @@ export default function RequestDetailPage() {
       await fetchRequest();
     } catch (err) {
       console.error('Failed to submit:', err);
-      alert('Gagal submit request');
+      toast.error('Gagal submit request');
     } finally {
       setIsActionLoading(false);
     }
@@ -83,7 +84,7 @@ export default function RequestDetailPage() {
       await fetchRequest();
     } catch (err) {
       console.error('Failed to cancel:', err);
-      alert('Gagal membatalkan request');
+      toast.error('Gagal membatalkan request');
     } finally {
       setIsActionLoading(false);
     }
@@ -98,7 +99,7 @@ export default function RequestDetailPage() {
       setRemarks('');
     } catch (err) {
       console.error('Failed to approve:', err);
-      alert('Gagal menyetujui request');
+      toast.error('Gagal menyetujui request');
     } finally {
       setIsActionLoading(false);
     }
@@ -106,7 +107,7 @@ export default function RequestDetailPage() {
 
   const handleReject = async () => {
     if (!remarks) {
-      alert('Mohon masukkan alasan penolakan di kolom catatan.');
+      toast.warning('Mohon masukkan alasan penolakan di kolom catatan.');
       return;
     }
     setIsActionLoading(true);
@@ -117,7 +118,7 @@ export default function RequestDetailPage() {
       setRemarks('');
     } catch (err) {
       console.error('Failed to reject:', err);
-      alert('Gagal menolak request');
+      toast.error('Gagal menolak request');
     } finally {
       setIsActionLoading(false);
     }

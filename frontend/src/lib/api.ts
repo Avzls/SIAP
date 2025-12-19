@@ -73,6 +73,12 @@ export const assetsApi = {
     }),
   deleteAttachment: (assetId: number, attachmentId: number) => 
     api.delete(`/assets/${assetId}/attachments/${attachmentId}`),
+  // Import
+  import: (formData: FormData) => 
+    api.post('/assets/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  importFormat: () => api.get('/assets/import/format'),
 };
 
 // Requests API

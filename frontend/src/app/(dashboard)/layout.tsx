@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Toaster } from 'sonner';
 
 export default function DashboardLayout({
   children,
@@ -42,6 +43,13 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      <Toaster 
+        position="top-right" 
+        richColors 
+        closeButton 
+        duration={4000}
+      />
     </div>
   );
 }
+
