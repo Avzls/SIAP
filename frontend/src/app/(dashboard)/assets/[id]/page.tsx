@@ -36,11 +36,13 @@ import {
   Image,
   Edit,
   Save,
+  TrendingDown,
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
-type Tab = 'overview' | 'history' | 'attachments';
+type Tab = 'overview' | 'history' | 'attachments' | 'depreciation';
 
 interface SearchUser {
   id: number;
@@ -107,10 +109,16 @@ export default function AssetDetailPage() {
     serial_number: '',
     purchase_date: '',
     purchase_price: '',
+    useful_life_years: '',
+    residual_value: '',
     warranty_end: '',
     notes: '',
   });
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Depreciation State
+  const [depreciationHistory, setDepreciationHistory] = useState<any[]>([]);
+  const [loadingDepreciation, setLoadingDepreciation] = useState(false);
 
   // Wait for client-side hydration before fetching
   useEffect(() => {
@@ -169,6 +177,25 @@ export default function AssetDetailPage() {
       };
       
       if (asset) fetchAttachments();
+    }
+  }, [activeTab, asset]);
+
+  // Fetch depreciation when tab is active
+  useEffect(() => {
+    if (activeTab === 'depreciation' && depreciationHistory.length === 0) {
+      const fetchDepreciation = async () => {
+        setLoadingDepreciation(true);
+        try {
+          const { data } = await assetsApi.depreciation(asset?.id as number) as any;
+          setDepreciationHistory(data.history);
+        } catch (err) {
+          console.error('Failed to fetch depreciation:', err);
+        } finally {
+          setLoadingDepreciation(false);
+        }
+      };
+      
+      if (asset) fetchDepreciation();
     }
   }, [activeTab, asset]);
 
@@ -315,6 +342,8 @@ export default function AssetDetailPage() {
       serial_number: asset.serial_number || '',
       purchase_date: asset.purchase_date ? asset.purchase_date.split('T')[0] : '',
       purchase_price: asset.purchase_price?.toString() || '',
+      useful_life_years: asset.useful_life_years?.toString() || '',
+      residual_value: asset.residual_value?.toString() || '',
       warranty_end: asset.warranty_end ? asset.warranty_end.split('T')[0] : '',
       notes: asset.notes || '',
     });
@@ -337,6 +366,8 @@ export default function AssetDetailPage() {
         serial_number: editForm.serial_number || null,
         purchase_date: editForm.purchase_date || null,
         purchase_price: editForm.purchase_price ? parseFloat(editForm.purchase_price) : null,
+        useful_life_years: editForm.useful_life_years ? parseInt(editForm.useful_life_years) : null,
+        residual_value: editForm.residual_value ? parseFloat(editForm.residual_value) : null,
         warranty_end: editForm.warranty_end || null,
         notes: editForm.notes || null,
       });
@@ -468,6 +499,7 @@ export default function AssetDetailPage() {
             { id: 'overview', label: 'Ringkasan', icon: Info },
             { id: 'history', label: 'Riwayat Perpindahan', icon: History },
             { id: 'attachments', label: 'Lampiran', icon: Paperclip },
+            { id: 'depreciation', label: 'Penyusutan', icon: TrendingDown },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -739,6 +771,88 @@ export default function AssetDetailPage() {
                   </div>
                 )}
               </div>
+            </Card>
+          )}
+
+          {activeTab === 'depreciation' && (
+            <Card title="Simulasi Penyusutan (Metode Garis Lurus)">
+                <div className="p-6">
+                    {!asset.purchase_price || !asset.useful_life_years ? (
+                        <div className="text-center py-8 text-gray-500">
+                             <p>Data penyusutan belum lengkap.</p>
+                             <p className="text-xs mt-1">Pastikan Harga Beli dan Umur Ekonomis sudah diisi.</p>
+                             <Button variant="outline" size="sm" className="mt-4" onClick={openEditModal}>Lengkapi Data</Button>
+                        </div>
+                    ) : loadingDepreciation ? (
+                        <div className="flex justify-center py-8">
+                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : (
+                        <div className="space-y-8">
+                            {/* Summary Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 bg-blue-50 rounded-lg">
+                                    <p className="text-xs text-blue-600 font-medium uppercase">Harga Perolehan</p>
+                                    <p className="text-lg font-bold text-gray-900 mt-1">
+                                        Rp {Number(asset.purchase_price).toLocaleString('id-ID')}
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-green-50 rounded-lg">
+                                    <p className="text-xs text-green-600 font-medium uppercase">Nilai Buku Saat Ini</p>
+                                    <p className="text-lg font-bold text-gray-900 mt-1">
+                                        Rp {depreciationHistory.find(h => h.year === new Date().getFullYear())?.book_value?.toLocaleString('id-ID') || '-'}
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-orange-50 rounded-lg">
+                                    <p className="text-xs text-orange-600 font-medium uppercase">Penyusutan / Tahun</p>
+                                    <p className="text-lg font-bold text-gray-900 mt-1">
+                                        Rp {depreciationHistory[1]?.depreciation_expense?.toLocaleString('id-ID') || 0}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Chart */}
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={depreciationHistory}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="year" />
+                                        <YAxis tickFormatter={(value) => `Rp ${value/1000000}jt`} />
+                                        <Tooltip 
+                                            formatter={(value: number | undefined) => [`Rp ${(value || 0).toLocaleString('id-ID')}`, 'Nilai Buku']}
+                                            labelFormatter={(label) => `Tahun ${label}`}
+                                        />
+                                        <Line type="monotone" dataKey="book_value" stroke="#2563eb" strokeWidth={2} activeDot={{ r: 8 }} name="Nilai Buku" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* Table */}
+                            <div className="border rounded-lg overflow-hidden">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                                        <tr>
+                                            <th className="px-6 py-3">Tahun</th>
+                                            <th className="px-6 py-3">Beban Penyusutan</th>
+                                            <th className="px-6 py-3">Akumulasi Penyusutan</th>
+                                            <th className="px-6 py-3">Nilai Buku</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {depreciationHistory.map((row) => (
+                                            <tr key={row.year} className={row.year === new Date().getFullYear() ? "bg-blue-50/50" : ""}>
+                                                <td className="px-6 py-3 font-medium">{row.year}</td>
+                                                <td className="px-6 py-3">Rp {row.depreciation_expense.toLocaleString('id-ID')}</td>
+                                                <td className="px-6 py-3">Rp {row.accumulated_depreciation.toLocaleString('id-ID')}</td>
+                                                <td className="px-6 py-3 font-bold text-gray-900">Rp {row.book_value.toLocaleString('id-ID')}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </Card>
           )}
         </div>
@@ -1059,6 +1173,27 @@ export default function AssetDetailPage() {
                   onChange={(e) => setEditForm({ ...editForm, purchase_price: e.target.value })}
                   placeholder="0"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Umur Ekonomis (Thn)</label>
+                  <Input
+                    type="number"
+                    value={editForm.useful_life_years}
+                    onChange={(e) => setEditForm({ ...editForm, useful_life_years: e.target.value })}
+                    placeholder="4"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nilai Sisa (Rp)</label>
+                  <Input
+                    type="number"
+                    value={editForm.residual_value}
+                    onChange={(e) => setEditForm({ ...editForm, residual_value: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
               </div>
 
               <div>

@@ -25,6 +25,8 @@ class Asset extends Model
         'serial_number',
         'purchase_date',
         'purchase_price',
+        'useful_life_years',
+        'residual_value',
         'warranty_end',
         'specifications',
         'notes',
@@ -36,6 +38,8 @@ class Asset extends Model
             'status' => AssetStatus::class,
             'purchase_date' => 'date',
             'purchase_price' => 'decimal:2',
+            'residual_value' => 'decimal:2',
+            'useful_life_years' => 'integer',
             'warranty_end' => 'date',
             'specifications' => 'array',
         ];
@@ -146,5 +150,54 @@ class Asset extends Model
     public function getQrDataAttribute(): string
     {
         return $this->asset_tag;
+    }
+
+    /**
+     * Calculate depreciation history (Straight Line Method)
+     */
+    public function getDepreciationHistory(): array
+    {
+        if (!$this->purchase_price || !$this->useful_life_years || $this->useful_life_years <= 0 || !$this->purchase_date) {
+            return [];
+        }
+
+        $cost = $this->purchase_price;
+        $residual = $this->residual_value ?? 0;
+        $usefulLife = $this->useful_life_years;
+        $annualDepreciation = ($cost - $residual) / $usefulLife;
+
+        $history = [];
+        $currentValue = $cost;
+        $purchaseYear = $this->purchase_date->year;
+
+        for ($i = 0; $i <= $usefulLife; $i++) {
+            $year = $purchaseYear + $i;
+            
+            // Year 0 is acquisition
+            if ($i === 0) {
+                 $history[] = [
+                    'year' => $year,
+                    'book_value' => $cost,
+                    'depreciation_expense' => 0,
+                    'accumulated_depreciation' => 0,
+                 ];
+                 continue;
+            }
+
+            $currentValue -= $annualDepreciation;
+            // Ensure we don't go below residual
+            if ($currentValue < $residual) $currentValue = $residual;
+
+            $accumulated = $cost - $currentValue;
+
+            $history[] = [
+                'year' => $year,
+                'book_value' => round(max($currentValue, $residual), 2),
+                'depreciation_expense' => round($annualDepreciation, 2),
+                'accumulated_depreciation' => round($accumulated, 2),
+            ];
+        }
+
+        return $history;
     }
 }

@@ -40,6 +40,8 @@ export interface Asset {
   serial_number?: string;
   purchase_date?: string;
   purchase_price?: string;
+  useful_life_years?: number;
+  residual_value?: string;
   warranty_end?: string;
   is_under_warranty: boolean;
   specifications?: Record<string, unknown>;

@@ -74,6 +74,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/import', [AssetController::class, 'import']);
         Route::get('/import/format', [AssetController::class, 'importFormat']);
         
+        // Depreciation
+        Route::get('/{asset}/depreciation', [AssetController::class, 'depreciation']);
+
         Route::get('/{asset}', [AssetController::class, 'show']);
         Route::put('/{asset}', [AssetController::class, 'update']);
         Route::delete('/{asset}', [AssetController::class, 'destroy']);

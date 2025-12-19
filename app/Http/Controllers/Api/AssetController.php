@@ -77,6 +77,8 @@ class AssetController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'purchase_date' => 'nullable|date',
             'purchase_price' => 'nullable|numeric|min:0',
+            'useful_life_years' => 'nullable|integer|min:0',
+            'residual_value' => 'nullable|numeric|min:0',
             'warranty_end' => 'nullable|date',
             'specifications' => 'nullable|array',
             'notes' => 'nullable|string',
@@ -124,6 +126,8 @@ class AssetController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'purchase_date' => 'nullable|date',
             'purchase_price' => 'nullable|numeric|min:0',
+            'useful_life_years' => 'nullable|integer|min:0',
+            'residual_value' => 'nullable|numeric|min:0',
             'warranty_end' => 'nullable|date',
             'specifications' => 'nullable|array',
             'notes' => 'nullable|string',
@@ -204,6 +208,25 @@ class AssetController extends Controller
     {
         return response()->json([
             'columns' => \App\Services\AssetImportService::getTemplateDescription(),
+        ]);
+    }
+
+    /**
+     * Get asset depreciation history
+     */
+    public function depreciation(Asset $asset): JsonResponse
+    {
+        $this->authorize('view', $asset);
+
+        return response()->json([
+            'asset' => [
+                'name' => $asset->name,
+                'asset_tag' => $asset->asset_tag,
+                'purchase_price' => $asset->purchase_price,
+                'useful_life_years' => $asset->useful_life_years,
+                'residual_value' => $asset->residual_value,
+            ],
+            'history' => $asset->getDepreciationHistory(),
         ]);
     }
 }
