@@ -166,3 +166,12 @@ export const masterDataApi = {
   deleteLocation: (id: number) => 
     api.delete(`/master/locations/${id}`),
 };
+
+// Notifications API
+export const notificationsApi = {
+  list: () => api.get('/notifications'),
+  unreadCount: () => api.get('/notifications/unread-count'),
+  markAsRead: (id: number) => api.post(`/notifications/${id}/read`),
+  markAllAsRead: () => api.post('/notifications/mark-all-read'),
+  delete: (id: number) => api.delete(`/notifications/${id}`),
+};

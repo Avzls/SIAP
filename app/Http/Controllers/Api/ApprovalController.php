@@ -7,10 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\AssetRequestResource;
 use App\Models\AssetRequest;
 use App\Models\AssetRequestApproval;
+use App\Models\Notification;
 use App\Services\AssetRequestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class ApprovalController extends Controller
 {
@@ -76,6 +78,16 @@ class ApprovalController extends Controller
             $validated['remarks'] ?? null
         );
 
+        // Send notification to requester (don't fail approval if notification fails)
+        try {
+            \Log::info('Creating approval notification for requester_id: ' . $request->requester_id);
+            Notification::notifyRequestApproved($request);
+            \Log::info('Approval notification created successfully');
+        } catch (\Exception $e) {
+            \Log::error('Failed to create approval notification: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+        }
+
         return response()->json([
             'message' => 'Request approved',
             'data' => new AssetRequestResource($request->fresh(['items', 'approvals'])),
@@ -98,6 +110,13 @@ class ApprovalController extends Controller
             $httpRequest->user(),
             $validated['reason']
         );
+
+        // Send notification to requester (don't fail rejection if notification fails)
+        try {
+            Notification::notifyRequestRejected($request, $validated['reason']);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create rejection notification: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Request rejected',

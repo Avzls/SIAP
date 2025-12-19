@@ -69,8 +69,12 @@ class AssetRequestService
 
             $request->update(['status' => RequestStatus::PENDING_APPROVAL]);
 
-            // TODO: Send notification to approver
-            // $approver->notify(new RequestPendingApproval($request));
+            // Send notification to approver
+            try {
+                \App\Models\Notification::notifyRequestCreated($request, [$approver->id]);
+            } catch (\Exception $e) {
+                Log::error('Failed to notify approver: ' . $e->getMessage());
+            }
 
             Log::channel('audit')->info('Request submitted', [
                 'request_id' => $request->id,
