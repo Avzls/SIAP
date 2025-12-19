@@ -84,9 +84,13 @@ export default function CategoriesPage() {
       }
       setShowModal(false);
       fetchCategories();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save category:', error);
-      alert('Gagal menyimpan kategori');
+      const axiosError = error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+      const errorMessage = axiosError.response?.data?.message 
+        || Object.values(axiosError.response?.data?.errors || {}).flat().join(', ')
+        || 'Gagal menyimpan kategori';
+      alert(errorMessage);
     } finally {
       setSaving(false);
     }

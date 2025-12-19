@@ -55,7 +55,12 @@ class MasterDataController extends Controller
     public function storeCategory(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:asset_categories,code',
+            'code' => [
+                'required', 
+                'string', 
+                'max:20', 
+                Rule::unique('asset_categories', 'code')->whereNull('deleted_at')
+            ],
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
             'requires_approval' => 'boolean',
@@ -73,10 +78,19 @@ class MasterDataController extends Controller
     /**
      * Update a category
      */
-    public function updateCategory(Request $request, AssetCategory $category): JsonResponse
+    public function updateCategory(Request $request, int $id): JsonResponse
     {
+        $category = AssetCategory::findOrFail($id);
+        
         $validated = $request->validate([
-            'code' => ['required', 'string', 'max:20', Rule::unique('asset_categories', 'code')->ignore($category->id)],
+            'code' => [
+                'required', 
+                'string', 
+                'max:20', 
+                Rule::unique('asset_categories', 'code')
+                    ->ignore($category->id)
+                    ->whereNull('deleted_at')
+            ],
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
             'requires_approval' => 'boolean',
@@ -94,8 +108,10 @@ class MasterDataController extends Controller
     /**
      * Delete a category
      */
-    public function destroyCategory(AssetCategory $category): JsonResponse
+    public function destroyCategory(int $id): JsonResponse
     {
+        $category = AssetCategory::findOrFail($id);
+        
         if ($category->assets()->exists()) {
             return response()->json([
                 'message' => 'Kategori tidak dapat dihapus karena masih memiliki aset',
@@ -156,7 +172,12 @@ class MasterDataController extends Controller
     public function storeLocation(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:asset_locations,code',
+            'code' => [
+                'required', 
+                'string', 
+                'max:20', 
+                Rule::unique('asset_locations', 'code')->whereNull('deleted_at')
+            ],
             'name' => 'required|string|max:100',
             'building' => 'nullable|string|max:100',
             'floor' => 'nullable|string|max:20',
@@ -176,10 +197,19 @@ class MasterDataController extends Controller
     /**
      * Update a location
      */
-    public function updateLocation(Request $request, AssetLocation $location): JsonResponse
+    public function updateLocation(Request $request, int $id): JsonResponse
     {
+        $location = AssetLocation::findOrFail($id);
+        
         $validated = $request->validate([
-            'code' => ['required', 'string', 'max:20', Rule::unique('asset_locations', 'code')->ignore($location->id)],
+            'code' => [
+                'required', 
+                'string', 
+                'max:20', 
+                Rule::unique('asset_locations', 'code')
+                    ->ignore($location->id)
+                    ->whereNull('deleted_at')
+            ],
             'name' => 'required|string|max:100',
             'building' => 'nullable|string|max:100',
             'floor' => 'nullable|string|max:20',
@@ -199,8 +229,10 @@ class MasterDataController extends Controller
     /**
      * Delete a location
      */
-    public function destroyLocation(AssetLocation $location): JsonResponse
+    public function destroyLocation(int $id): JsonResponse
     {
+        $location = AssetLocation::findOrFail($id);
+        
         if ($location->assets()->exists()) {
             return response()->json([
                 'message' => 'Lokasi tidak dapat dihapus karena masih memiliki aset',
