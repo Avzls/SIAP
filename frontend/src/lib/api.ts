@@ -66,6 +66,13 @@ export const assetsApi = {
     api.post(`/assets/${id}/return`, data),
   transfer: (id: number, data: { user_id: number; notes?: string }) => 
     api.post(`/assets/${id}/transfer`, data),
+  // Status Updates
+  retire: (id: number, data: { reason: string }) => 
+    api.post(`/assets/${id}/retire`, data),
+  markLost: (id: number, data: { notes: string }) => 
+    api.post(`/assets/${id}/lost`, data),
+  markFound: (id: number, data: { location_id?: number; notes?: string }) => 
+    api.post(`/assets/${id}/found`, data),
   // Attachments
   attachments: (id: number) => api.get(`/assets/${id}/attachments`),
   uploadAttachment: (id: number, formData: FormData) => 

@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
     {
         // Required seeders (run in all environments)
         $this->call([
+            PermissionSeeder::class,  // Must run before RoleSeeder
             RoleSeeder::class,
             MasterDataSeeder::class,
         ]);
