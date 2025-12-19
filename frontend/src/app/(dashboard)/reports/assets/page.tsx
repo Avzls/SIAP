@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { reportsApi } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { RequireRole, useHasRole } from '@/components/auth/RequireRole';
 import { 
   Package, 
   ArrowLeft, 
@@ -51,9 +52,21 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 export default function AssetsReportPage() {
   const [data, setData] = useState<AssetsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Check if user has access before making API calls
+  // Returns null during hydration, then true/false
+  const hasAccess = useHasRole(['asset_admin', 'super_admin']);
 
   useEffect(() => {
     const fetchData = async () => {
+      // Wait until hasAccess is determined
+      if (hasAccess === null) return;
+      
+      if (!hasAccess) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         const response = await reportsApi.assetsSummary();
         setData(response.data.data);
@@ -63,8 +76,11 @@ export default function AssetsReportPage() {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    
+    if (hasAccess !== null) {
+      fetchData();
+    }
+  }, [hasAccess]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -91,6 +107,7 @@ export default function AssetsReportPage() {
   }
 
   return (
+    <RequireRole roles={['asset_admin', 'super_admin']}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -232,5 +249,6 @@ export default function AssetsReportPage() {
         </Card>
       </div>
     </div>
+    </RequireRole>
   );
 }

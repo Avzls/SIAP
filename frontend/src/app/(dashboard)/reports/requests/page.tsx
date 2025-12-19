@@ -6,6 +6,7 @@ import { reportsApi } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { RequireRole, useHasRole } from '@/components/auth/RequireRole';
 import { 
   FileText, 
   ArrowLeft, 
@@ -50,8 +51,20 @@ export default function RequestsReportPage() {
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  
+  // Check if user has access before making API calls
+  // Returns null during hydration, then true/false
+  const hasAccess = useHasRole(['asset_admin', 'super_admin']);
 
   const fetchData = async () => {
+    // Wait until hasAccess is determined
+    if (hasAccess === null) return;
+    
+    if (!hasAccess) {
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     try {
       const response = await reportsApi.requests({
@@ -67,8 +80,10 @@ export default function RequestsReportPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (hasAccess !== null) {
+      fetchData();
+    }
+  }, [hasAccess]);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +107,7 @@ export default function RequestsReportPage() {
   }
 
   return (
+    <RequireRole roles={['asset_admin', 'super_admin']}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -272,5 +288,6 @@ export default function RequestsReportPage() {
         </CardContent>
       </Card>
     </div>
+    </RequireRole>
   );
 }

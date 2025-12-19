@@ -6,6 +6,7 @@ import { reportsApi } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { RequireRole, useHasRole } from '@/components/auth/RequireRole';
 import { 
   ArrowRightLeft, 
   ArrowLeft, 
@@ -59,8 +60,21 @@ export default function MovementsReportPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  
+  // Check if user has access before making API calls
+  // Returns null during hydration, then true/false
+  const hasAccess = useHasRole(['asset_admin', 'super_admin']);
 
   const fetchMovements = async () => {
+    // Wait until hasAccess is determined (not null = hydration complete)
+    if (hasAccess === null) return;
+    
+    // No access - don't fetch
+    if (!hasAccess) {
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     try {
       const response = await reportsApi.movements({
@@ -78,8 +92,11 @@ export default function MovementsReportPage() {
   };
 
   useEffect(() => {
-    fetchMovements();
-  }, []);
+    // Only fetch when hasAccess is determined (not null)
+    if (hasAccess !== null) {
+      fetchMovements();
+    }
+  }, [hasAccess]);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +104,7 @@ export default function MovementsReportPage() {
   };
 
   return (
+    <RequireRole roles={['asset_admin', 'super_admin']}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -236,5 +254,6 @@ export default function MovementsReportPage() {
         </CardContent>
       </Card>
     </div>
+    </RequireRole>
   );
 }

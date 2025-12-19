@@ -41,11 +41,10 @@ class AssetMovementController extends Controller
 
     /**
      * Get all movements (for reporting)
+     * Note: Route already protected by role middleware (asset_admin|super_admin)
      */
     public function all(Request $request): AnonymousResourceCollection
     {
-        $this->authorize('viewAny', AssetMovement::class);
-
         $query = AssetMovement::with([
             'asset',
             'performer',

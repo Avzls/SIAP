@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
+import { RequireRole } from '@/components/auth/RequireRole';
 import { Package, ArrowRightLeft, FileText, BarChart3, ChevronRight } from 'lucide-react';
 
 const reports = [
@@ -30,6 +31,7 @@ const reports = [
 
 export default function ReportsPage() {
   return (
+    <RequireRole roles={['asset_admin', 'super_admin']}>
     <div className="space-y-6">
       {/* Header */}
       <div>
@@ -90,5 +92,6 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
     </div>
+    </RequireRole>
   );
 }
