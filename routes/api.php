@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AssetMovementController;
 use App\Http\Controllers\Api\AssetRequestController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
@@ -138,5 +139,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/roles/{role}', [RoleController::class, 'show']);
         Route::put('/roles/{role}', [RoleController::class, 'update']);
         Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
+    });
+
+    // =========================================
+    // Master Data (Asset Admin & Super Admin)
+    // =========================================
+    Route::prefix('master')->middleware('role:asset_admin|super_admin')->group(function () {
+        // Categories
+        Route::get('/categories', [MasterDataController::class, 'categories']);
+        Route::post('/categories', [MasterDataController::class, 'storeCategory']);
+        Route::put('/categories/{category}', [MasterDataController::class, 'updateCategory']);
+        Route::delete('/categories/{category}', [MasterDataController::class, 'destroyCategory']);
+
+        // Locations
+        Route::get('/locations', [MasterDataController::class, 'locations']);
+        Route::post('/locations', [MasterDataController::class, 'storeLocation']);
+        Route::put('/locations/{location}', [MasterDataController::class, 'updateLocation']);
+        Route::delete('/locations/{location}', [MasterDataController::class, 'destroyLocation']);
     });
 });

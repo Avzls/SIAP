@@ -47,8 +47,17 @@ const navigation: NavItem[] = [
     ],
   },
   { 
-    name: 'Admin', 
+    name: 'Master Data', 
     icon: Settings, 
+    roles: ['asset_admin', 'super_admin'],
+    children: [
+      { name: 'Kategori Aset', href: '/master/categories', icon: Box },
+      { name: 'Lokasi', href: '/master/locations', icon: Box },
+    ],
+  },
+  { 
+    name: 'Admin', 
+    icon: Shield, 
     roles: ['super_admin'],
     children: [
       { name: 'Kelola Pengguna', href: '/admin/users', icon: Users },

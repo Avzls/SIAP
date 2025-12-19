@@ -134,3 +134,26 @@ export const reportsApi = {
   requests: (params?: { from_date?: string; to_date?: string; status?: string }) => 
     api.get('/reports/requests', { params }),
 };
+
+// Master Data API (Admin)
+export const masterDataApi = {
+  // Categories
+  categories: (params?: { search?: string; active_only?: boolean }) => 
+    api.get('/master/categories', { params }),
+  createCategory: (data: { code: string; name: string; description?: string; requires_approval?: boolean; is_active?: boolean }) => 
+    api.post('/master/categories', data),
+  updateCategory: (id: number, data: { code: string; name: string; description?: string; requires_approval?: boolean; is_active?: boolean }) => 
+    api.put(`/master/categories/${id}`, data),
+  deleteCategory: (id: number) => 
+    api.delete(`/master/categories/${id}`),
+
+  // Locations
+  locations: (params?: { search?: string; active_only?: boolean }) => 
+    api.get('/master/locations', { params }),
+  createLocation: (data: { code: string; name: string; building?: string; floor?: string; room?: string; address?: string; is_active?: boolean }) => 
+    api.post('/master/locations', data),
+  updateLocation: (id: number, data: { code: string; name: string; building?: string; floor?: string; room?: string; address?: string; is_active?: boolean }) => 
+    api.put(`/master/locations/${id}`, data),
+  deleteLocation: (id: number) => 
+    api.delete(`/master/locations/${id}`),
+};
