@@ -156,6 +156,23 @@ export const reportsApi = {
     api.get('/reports/movements', { params }),
   requests: (params?: { from_date?: string; to_date?: string; status?: string }) => 
     api.get('/reports/requests', { params }),
+  
+  // Export methods
+  exportAssetsSummary: (params?: Record<string, unknown>, format: 'excel' | 'pdf' = 'excel') => 
+    api.get('/reports/assets-summary/export', { 
+      params: { ...params, format },
+      responseType: 'blob' 
+    }),
+  exportMovements: (params?: Record<string, unknown>, format: 'excel' | 'pdf' = 'excel') => 
+    api.get('/reports/movements/export', { 
+      params: { ...params, format },
+      responseType: 'blob' 
+    }),
+  exportRequests: (params?: Record<string, unknown>, format: 'excel' | 'pdf' = 'excel') => 
+    api.get('/reports/requests/export', { 
+      params: { ...params, format },
+      responseType: 'blob' 
+    }),
 };
 
 // Stock Opname API

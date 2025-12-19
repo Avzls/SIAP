@@ -147,6 +147,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/assets-summary', [ReportController::class, 'assetsSummary']);
         Route::get('/movements', [AssetMovementController::class, 'all']);
         Route::get('/requests', [ReportController::class, 'requests']);
+        
+        // Export routes
+        Route::get('/assets-summary/export', [\App\Http\Controllers\Api\ExportController::class, 'exportAssetsSummary']);
+        Route::get('/movements/export', [\App\Http\Controllers\Api\ExportController::class, 'exportMovements']);
+        Route::get('/requests/export', [\App\Http\Controllers\Api\ExportController::class, 'exportRequests']);
     });
 
     // =========================================

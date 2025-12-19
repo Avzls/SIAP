@@ -14,8 +14,12 @@ import {
   Package,
   Calendar,
   Filter,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { downloadFile } from '@/lib/export-utils';
 
 interface Movement {
   id: number;
@@ -57,6 +61,7 @@ const getMovementTypeValue = (type: string | { value: string; label: string }): 
 export default function MovementsReportPage() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -103,20 +108,68 @@ export default function MovementsReportPage() {
     fetchMovements();
   };
 
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    setExporting(true);
+    try {
+      const params: any = {};
+      if (fromDate) params.from_date = fromDate;
+      if (toDate) params.to_date = toDate;
+      if (typeFilter) params.type = typeFilter;
+
+      const response = await reportsApi.exportMovements(params, format);
+      const extension = format === 'excel' ? 'csv' : 'html';
+      const filename = `movements-${new Date().toISOString().split('T')[0]}.${extension}`;
+      downloadFile(response.data, filename);
+      
+      if (format === 'pdf') {
+        toast.success('File HTML berhasil didownload. Buka file dan Print to PDF untuk convert.');
+      } else {
+        toast.success('File Excel (CSV) berhasil didownload');
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Gagal export laporan');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <RequireRole roles={['asset_admin', 'super_admin']}>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/reports">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Kembali
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/reports">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Kembali
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Riwayat Pergerakan</h1>
+            <p className="text-gray-500">Log pergerakan aset (assign, return, transfer)</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => handleExport('excel')}
+            disabled={exporting || movements.length === 0}
+            isLoading={exporting}
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Export Excel
           </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Riwayat Pergerakan</h1>
-          <p className="text-gray-500">Log pergerakan aset (assign, return, transfer)</p>
+          <Button 
+            variant="outline"
+            onClick={() => handleExport('pdf')}
+            disabled={exporting || movements.length === 0}
+            isLoading={exporting}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Export PDF
+          </Button>
         </div>
       </div>
 
