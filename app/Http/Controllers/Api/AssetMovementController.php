@@ -26,11 +26,11 @@ class AssetMovementController extends Controller
 
         // Filter by date range
         if ($request->filled('from_date')) {
-            $query->where('created_at', '>=', $request->from_date);
+            $query->whereDate('created_at', '>=', $request->from_date);
         }
 
         if ($request->filled('to_date')) {
-            $query->where('created_at', '<=', $request->to_date);
+            $query->whereDate('created_at', '<=', $request->to_date);
         }
 
         $movements = $query->orderByDesc('created_at')
@@ -71,11 +71,11 @@ class AssetMovementController extends Controller
 
         // Filter by date range
         if ($request->filled('from_date')) {
-            $query->where('created_at', '>=', $request->from_date);
+            $query->whereDate('created_at', '>=', $request->from_date);
         }
 
         if ($request->filled('to_date')) {
-            $query->where('created_at', '<=', $request->to_date);
+            $query->whereDate('created_at', '<=', $request->to_date);
         }
 
         $movements = $query->orderByDesc('created_at')

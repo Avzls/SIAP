@@ -18,7 +18,10 @@ import {
   Package,
   Wrench,
   RotateCcw,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { downloadFile } from '@/lib/export-utils';
 
 interface RequestsReport {
   summary: {
@@ -49,6 +52,7 @@ const typeLabels: Record<string, { label: string; icon: React.ElementType }> = {
 export default function RequestsReportPage() {
   const [data, setData] = useState<RequestsReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   
@@ -90,6 +94,31 @@ export default function RequestsReportPage() {
     fetchData();
   };
 
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    setExporting(true);
+    try {
+      const params: any = {};
+      if (fromDate) params.from_date = fromDate;
+      if (toDate) params.to_date = toDate;
+
+      const response = await reportsApi.exportRequests(params, format);
+      const extension = format === 'excel' ? 'csv' : 'html';
+      const filename = `requests-${new Date().toISOString().split('T')[0]}.${extension}`;
+      downloadFile(response.data, filename);
+      
+      if (format === 'pdf') {
+        toast.success('File HTML berhasil didownload. Buka file dan Print to PDF untuk convert.');
+      } else {
+        toast.success('File Excel (CSV) berhasil didownload');
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Gagal export laporan');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -110,16 +139,38 @@ export default function RequestsReportPage() {
     <RequireRole roles={['asset_admin', 'super_admin']}>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/reports">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Kembali
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/reports">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Kembali
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Laporan Permintaan</h1>
+            <p className="text-gray-500">Statistik permintaan aset per status dan tipe</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => handleExport('excel')}
+            disabled={exporting || !data}
+            isLoading={exporting}
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Export Excel
           </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Laporan Permintaan</h1>
-          <p className="text-gray-500">Statistik permintaan aset per status dan tipe</p>
+          <Button 
+            variant="outline"
+            onClick={() => handleExport('pdf')}
+            disabled={exporting || !data}
+            isLoading={exporting}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Export PDF
+          </Button>
         </div>
       </div>
 
