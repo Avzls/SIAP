@@ -147,6 +147,18 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // =========================================
+    // Stock Opname (Audit)
+    // =========================================
+    Route::prefix('audit')->middleware('role:asset_admin|super_admin')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\StockOpnameController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\Api\StockOpnameController::class, 'store']);
+        Route::get('/{stockOpname}', [\App\Http\Controllers\Api\StockOpnameController::class, 'show']);
+        Route::post('/{stockOpname}/scan', [\App\Http\Controllers\Api\StockOpnameController::class, 'scan']);
+        Route::post('/{stockOpname}/finalize', [\App\Http\Controllers\Api\StockOpnameController::class, 'finalize']);
+        Route::post('/{stockOpname}/cancel', [\App\Http\Controllers\Api\StockOpnameController::class, 'cancel']);
+    });
+
+    // =========================================
     // Dashboard
     // =========================================
     Route::get('/dashboard', [DashboardController::class, 'index']);

@@ -150,6 +150,17 @@ export const reportsApi = {
     api.get('/reports/requests', { params }),
 };
 
+// Stock Opname API
+export const auditApi = {
+  list: (params?: Record<string, unknown>) => api.get('/audit', { params }),
+  create: (data: { title: string; description?: string; assigned_location_id: number; start_date: string }) => 
+    api.post('/audit', data),
+  get: (id: number) => api.get(`/audit/${id}`),
+  scan: (id: number, asset_tag: string) => api.post(`/audit/${id}/scan`, { asset_tag }),
+  finalize: (id: number) => api.post(`/audit/${id}/finalize`),
+  cancel: (id: number) => api.post(`/audit/${id}/cancel`),
+};
+
 // Master Data API (Admin)
 export const masterDataApi = {
   // Categories

@@ -19,6 +19,7 @@ import {
   Settings,
   ArrowRightLeft,
   Box,
+  ScanLine,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -36,6 +37,7 @@ const navigation: NavItem[] = [
   { name: 'Permintaan Saya', href: '/requests', icon: FileText },
   { name: 'Persetujuan', href: '/approvals', icon: ClipboardCheck, roles: ['approver', 'super_admin'] },
   { name: 'Pemenuhan', href: '/admin/fulfillment', icon: ClipboardCheck, roles: ['asset_admin', 'super_admin'] },
+  { name: 'Stock Opname', href: '/audit', icon: ScanLine, roles: ['asset_admin', 'super_admin'] },
   { 
     name: 'Laporan', 
     icon: BarChart3, 
