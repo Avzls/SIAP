@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\AssetActionController;
+use App\Http\Controllers\Api\AssetAttachmentController;
 use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\AssetMovementController;
 use App\Http\Controllers\Api\AssetRequestController;
@@ -67,6 +68,11 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Asset Audit Trail
         Route::get('/{asset}/movements', [AssetMovementController::class, 'index']);
+        
+        // Asset Attachments
+        Route::get('/{asset}/attachments', [AssetAttachmentController::class, 'index']);
+        Route::post('/{asset}/attachments', [AssetAttachmentController::class, 'store']);
+        Route::delete('/{asset}/attachments/{attachment}', [AssetAttachmentController::class, 'destroy']);
     });
 
     // =========================================

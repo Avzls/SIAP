@@ -65,6 +65,14 @@ export const assetsApi = {
     api.post(`/assets/${id}/return`, data),
   transfer: (id: number, data: { user_id: number; notes?: string }) => 
     api.post(`/assets/${id}/transfer`, data),
+  // Attachments
+  attachments: (id: number) => api.get(`/assets/${id}/attachments`),
+  uploadAttachment: (id: number, formData: FormData) => 
+    api.post(`/assets/${id}/attachments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  deleteAttachment: (assetId: number, attachmentId: number) => 
+    api.delete(`/assets/${assetId}/attachments/${attachmentId}`),
 };
 
 // Requests API

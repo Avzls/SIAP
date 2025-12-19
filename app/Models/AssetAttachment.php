@@ -53,7 +53,8 @@ class AssetAttachment extends Model
      */
     public function getUrlAttribute(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        // Generate full URL for storage files
+        return url('storage/' . $this->path);
     }
 
     /**

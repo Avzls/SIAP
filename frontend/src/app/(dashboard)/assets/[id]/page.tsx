@@ -29,6 +29,11 @@ import {
   Search,
   UserPlus,
   Check,
+  Trash2,
+  Download,
+  Upload,
+  FileText,
+  Image,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -73,6 +78,23 @@ export default function AssetDetailPage() {
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
 
+  // Attachments state
+  interface Attachment {
+    id: number;
+    original_name: string;
+    mime_type: string;
+    size: number;
+    human_size: string;
+    type: string;
+    url: string;
+    is_image: boolean;
+    uploaded_by: string;
+    created_at: string;
+  }
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
   // Wait for client-side hydration before fetching
   useEffect(() => {
     setMounted(true);
@@ -113,6 +135,63 @@ export default function AssetDetailPage() {
       if (asset) fetchHistory();
     }
   }, [activeTab, asset]);
+
+  // Fetch attachments when tab is active
+  useEffect(() => {
+    if (activeTab === 'attachments' && attachments.length === 0) {
+      const fetchAttachments = async () => {
+        setLoadingAttachments(true);
+        try {
+          const { data } = await assetsApi.attachments(asset?.id as number);
+          setAttachments(data.data || []);
+        } catch (err) {
+          console.error('Failed to fetch attachments:', err);
+        } finally {
+          setLoadingAttachments(false);
+        }
+      };
+      
+      if (asset) fetchAttachments();
+    }
+  }, [activeTab, asset]);
+
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !asset) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', file.type.startsWith('image/') ? 'photo' : 'document');
+      
+      const { data } = await assetsApi.uploadAttachment(asset.id, formData);
+      setAttachments(prev => [data.data, ...prev]);
+      alert('File berhasil diupload');
+    } catch (err) {
+      console.error('Failed to upload file:', err);
+      alert('Gagal mengupload file');
+    } finally {
+      setUploading(false);
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  // Handle delete attachment
+  const handleDeleteAttachment = async (attachmentId: number, fileName: string) => {
+    if (!asset) return;
+    if (!confirm(`Hapus file "${fileName}"?`)) return;
+
+    try {
+      await assetsApi.deleteAttachment(asset.id, attachmentId);
+      setAttachments(prev => prev.filter(a => a.id !== attachmentId));
+      alert('File berhasil dihapus');
+    } catch (err) {
+      console.error('Failed to delete attachment:', err);
+      alert('Gagal menghapus file');
+    }
+  };
 
   // Search users with debounce
   useEffect(() => {
@@ -499,16 +578,100 @@ export default function AssetDetailPage() {
 
           {activeTab === 'attachments' && (
             <Card title="Lampiran">
-              <div className="p-6 text-center py-12">
-                <Paperclip className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada lampiran</h3>
-                <p className="mt-1 text-sm text-gray-500">Unggah foto atau dokumen untuk memulai.</p>
-                <div className="mt-6">
-                  <Button variant="outline">
-                    <Paperclip className="w-4 h-4 mr-2" />
-                    Unggah File
-                  </Button>
+              <div className="p-6">
+                {/* Upload Button */}
+                <div className="mb-6">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                      disabled={uploading}
+                    />
+                    <div className="flex items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg py-6 px-4 hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
+                      {uploading ? (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                          <span>Mengupload...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Upload className="w-5 h-5" />
+                          <span>Klik untuk upload file (maks 10MB)</span>
+                        </div>
+                      )}
+                    </div>
+                  </label>
                 </div>
+
+                {/* Attachments List */}
+                {loadingAttachments ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : attachments.length > 0 ? (
+                  <div className="space-y-3">
+                    {attachments.map((att) => (
+                      <div 
+                        key={att.id} 
+                        className="flex items-center gap-4 p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                      >
+                        {/* Icon/Preview */}
+                        <div className="flex-shrink-0">
+                          {att.is_image ? (
+                            <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden">
+                              <img 
+                                src={att.url} 
+                                alt={att.original_name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                              <FileText className="w-6 h-6 text-gray-500" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {att.original_name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {att.human_size} • {att.uploaded_by || 'Unknown'} • {att.created_at ? format(new Date(att.created_at), 'dd MMM yyyy') : '-'}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => handleDeleteAttachment(att.id, att.original_name)}
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Paperclip className="mx-auto h-12 w-12 text-gray-300" />
+                    <p className="mt-2 text-sm text-gray-500">Belum ada lampiran</p>
+                  </div>
+                )}
               </div>
             </Card>
           )}
