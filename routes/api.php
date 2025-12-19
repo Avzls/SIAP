@@ -159,6 +159,18 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // =========================================
+    // Maintenance
+    // =========================================
+    Route::prefix('maintenance')->middleware('role:asset_admin|super_admin')->group(function () {
+        Route::get('/schedules', [\App\Http\Controllers\Api\MaintenanceController::class, 'indexSchedules']);
+        Route::post('/schedules', [\App\Http\Controllers\Api\MaintenanceController::class, 'storeSchedule']);
+        Route::delete('/schedules/{id}', [\App\Http\Controllers\Api\MaintenanceController::class, 'deleteSchedule']);
+        
+        Route::get('/logs', [\App\Http\Controllers\Api\MaintenanceController::class, 'indexLogs']);
+        Route::post('/logs', [\App\Http\Controllers\Api\MaintenanceController::class, 'storeLog']);
+    });
+
+    // =========================================
     // Dashboard
     // =========================================
     Route::get('/dashboard', [DashboardController::class, 'index']);
