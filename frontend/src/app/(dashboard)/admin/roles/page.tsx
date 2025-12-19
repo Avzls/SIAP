@@ -112,6 +112,53 @@ export default function RolesPage() {
     );
   };
 
+  // Group permissions by category (prefix before the dot)
+  const groupedPermissions = permissions.reduce((acc, perm) => {
+    const parts = perm.name.split('.');
+    const category = parts[0];
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(perm);
+    return acc;
+  }, {} as Record<string, Permission[]>);
+
+  // Get action name from permission (part after the category)
+  const getActionName = (permName: string) => {
+    const parts = permName.split('.');
+    return parts.slice(1).join('.');
+  };
+
+  // Format category name for display
+  const formatCategoryName = (category: string) => {
+    return category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
+  };
+
+  // Toggle all permissions in a category
+  const toggleCategory = (category: string) => {
+    const categoryPerms = groupedPermissions[category]?.map(p => p.name) || [];
+    const allSelected = categoryPerms.every(p => selectedPermissions.includes(p));
+    
+    if (allSelected) {
+      setSelectedPermissions(prev => prev.filter(p => !categoryPerms.includes(p)));
+    } else {
+      setSelectedPermissions(prev => [...new Set([...prev, ...categoryPerms])]);
+    }
+  };
+
+  // Check if all permissions in category are selected
+  const isCategorySelected = (category: string) => {
+    const categoryPerms = groupedPermissions[category]?.map(p => p.name) || [];
+    return categoryPerms.length > 0 && categoryPerms.every(p => selectedPermissions.includes(p));
+  };
+
+  // Check if some (but not all) permissions in category are selected
+  const isCategoryPartial = (category: string) => {
+    const categoryPerms = groupedPermissions[category]?.map(p => p.name) || [];
+    const selectedCount = categoryPerms.filter(p => selectedPermissions.includes(p)).length;
+    return selectedCount > 0 && selectedCount < categoryPerms.length;
+  };
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'super_admin': return 'bg-purple-100 text-purple-700 border-purple-200';
@@ -241,26 +288,46 @@ export default function RolesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Permissions
                 </label>
-                <div className="max-h-48 overflow-y-auto border rounded-lg p-2 space-y-1">
-                  {permissions.map((perm) => (
-                    <label
-                      key={perm.id}
-                      className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedPermissions.includes(perm.name)}
-                        onChange={() => togglePermission(perm.name)}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{perm.name}</span>
-                    </label>
-                  ))}
-                  {permissions.length === 0 && (
+                <div className="max-h-64 overflow-y-auto border rounded-lg p-3 space-y-4">
+                  {Object.keys(groupedPermissions).length === 0 && (
                     <p className="text-sm text-gray-500 text-center py-4">
                       Belum ada permission
                     </p>
                   )}
+                  {Object.entries(groupedPermissions).map(([category, perms]) => (
+                    <div key={category} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isCategorySelected(category)}
+                          ref={(el) => {
+                            if (el) el.indeterminate = isCategoryPartial(category);
+                          }}
+                          onChange={() => toggleCategory(category)}
+                          className="rounded"
+                        />
+                        <span className="text-sm font-semibold text-gray-800">
+                          {formatCategoryName(category)}
+                        </span>
+                      </div>
+                      <div className="ml-6 grid grid-cols-2 gap-1">
+                        {perms.map((perm) => (
+                          <label
+                            key={perm.id}
+                            className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedPermissions.includes(perm.name)}
+                              onChange={() => togglePermission(perm.name)}
+                              className="rounded text-blue-600"
+                            />
+                            <span className="text-sm text-gray-600">{getActionName(perm.name)}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -288,26 +355,46 @@ export default function RolesPage() {
               </Button>
             </div>
             <div>
-              <div className="max-h-64 overflow-y-auto border rounded-lg p-2 space-y-1">
-                {permissions.map((perm) => (
-                  <label
-                    key={perm.id}
-                    className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedPermissions.includes(perm.name)}
-                      onChange={() => togglePermission(perm.name)}
-                      className="rounded"
-                    />
-                    <span className="text-sm">{perm.name}</span>
-                  </label>
-                ))}
-                {permissions.length === 0 && (
+              <div className="max-h-80 overflow-y-auto border rounded-lg p-3 space-y-4">
+                {Object.keys(groupedPermissions).length === 0 && (
                   <p className="text-sm text-gray-500 text-center py-4">
                     Belum ada permission
                   </p>
                 )}
+                {Object.entries(groupedPermissions).map(([category, perms]) => (
+                  <div key={category} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isCategorySelected(category)}
+                        ref={(el) => {
+                          if (el) el.indeterminate = isCategoryPartial(category);
+                        }}
+                        onChange={() => toggleCategory(category)}
+                        className="rounded"
+                      />
+                      <span className="text-sm font-semibold text-gray-800">
+                        {formatCategoryName(category)}
+                      </span>
+                    </div>
+                    <div className="ml-6 grid grid-cols-2 gap-1">
+                      {perms.map((perm) => (
+                        <label
+                          key={perm.id}
+                          className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPermissions.includes(perm.name)}
+                            onChange={() => togglePermission(perm.name)}
+                            className="rounded text-blue-600"
+                          />
+                          <span className="text-sm text-gray-600">{getActionName(perm.name)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
