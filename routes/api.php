@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AssetMovementController;
 use App\Http\Controllers\Api\AssetRequestController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -106,10 +107,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // =========================================
-    // Reports & Movements (Admin)
+    // Reports (Admin)
     // =========================================
     Route::prefix('reports')->middleware('role:asset_admin|super_admin')->group(function () {
+        Route::get('/assets-summary', [ReportController::class, 'assetsSummary']);
         Route::get('/movements', [AssetMovementController::class, 'all']);
+        Route::get('/requests', [ReportController::class, 'requests']);
     });
 
     // =========================================

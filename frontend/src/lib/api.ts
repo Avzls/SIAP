@@ -124,3 +124,13 @@ export const rolesApi = {
   delete: (id: number) => api.delete(`/admin/roles/${id}`),
   permissions: () => api.get('/admin/roles/permissions'),
 };
+
+// Reports API (Admin)
+export const reportsApi = {
+  assetsSummary: (params?: { category_id?: number; location_id?: number }) => 
+    api.get('/reports/assets-summary', { params }),
+  movements: (params?: { from_date?: string; to_date?: string; type?: string; per_page?: number }) => 
+    api.get('/reports/movements', { params }),
+  requests: (params?: { from_date?: string; to_date?: string; status?: string }) => 
+    api.get('/reports/requests', { params }),
+};
