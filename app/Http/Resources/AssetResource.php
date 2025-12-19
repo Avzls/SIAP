@@ -43,6 +43,8 @@ class AssetResource extends JsonResource
             'serial_number' => $this->serial_number,
             'purchase_date' => $this->purchase_date?->format('Y-m-d'),
             'purchase_price' => $this->purchase_price,
+            'useful_life_years' => $this->useful_life_years,
+            'residual_value' => $this->residual_value,
             'warranty_end' => $this->warranty_end?->format('Y-m-d'),
             'is_under_warranty' => $this->isUnderWarranty(),
             'specifications' => $this->specifications,

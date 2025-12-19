@@ -58,6 +58,7 @@ export const assetsApi = {
   delete: (id: number) => api.delete(`/assets/${id}`),
   available: (params?: Record<string, unknown>) => api.get('/assets/available', { params }),
   movements: (id: number) => api.get(`/assets/${id}/movements`),
+  depreciation: (id: number) => api.get(`/assets/${id}/depreciation`),
   // Actions
   assign: (id: number, data: { user_id: number; notes?: string }) => 
     api.post(`/assets/${id}/assign`, data),

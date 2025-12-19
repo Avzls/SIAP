@@ -19,6 +19,8 @@ interface AssetFormData {
   serial_number: string;
   purchase_date: string;
   purchase_price: string;
+  useful_life_years: string;
+  residual_value: string;
   warranty_end: string;
   notes: string;
 }
@@ -37,7 +39,10 @@ export default function NewAssetPage() {
     model: '',
     serial_number: '',
     purchase_date: '',
+    purchase_date: '',
     purchase_price: '',
+    useful_life_years: '',
+    residual_value: '',
     warranty_end: '',
     notes: '',
   });
@@ -63,6 +68,8 @@ export default function NewAssetPage() {
         serial_number: formData.serial_number || undefined,
         purchase_date: formData.purchase_date || undefined,
         purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : undefined,
+        useful_life_years: formData.useful_life_years ? parseInt(formData.useful_life_years) : undefined,
+        residual_value: formData.residual_value ? parseFloat(formData.residual_value) : undefined,
         warranty_end: formData.warranty_end || undefined,
         notes: formData.notes || undefined,
       };
@@ -220,6 +227,26 @@ export default function NewAssetPage() {
                   value={formData.purchase_price}
                   onChange={handleChange}
                   placeholder="15000000"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Umur Ekonomis (Tahun)</label>
+                <Input
+                  type="number"
+                  name="useful_life_years"
+                  value={formData.useful_life_years}
+                  onChange={handleChange}
+                  placeholder="4"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Nilai Sisa (Residu)</label>
+                <Input
+                  type="number"
+                  name="residual_value"
+                  value={formData.residual_value}
+                  onChange={handleChange}
+                  placeholder="0"
                 />
               </div>
               <div className="space-y-2">
