@@ -113,6 +113,7 @@ export const usersApi = {
   update: (id: number, data: Record<string, unknown>) => api.put(`/admin/users/${id}`, data),
   assignRoles: (id: number, roles: string[]) => api.post(`/admin/users/${id}/roles`, { roles }),
   availableRoles: () => api.get('/admin/users/roles'),
+  search: (params?: { search?: string }) => api.get('/admin/users/search', { params }),
 };
 
 // Roles API (Admin)
