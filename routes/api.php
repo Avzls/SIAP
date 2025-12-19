@@ -105,6 +105,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/requests/{request}/fulfill', [AdminController::class, 'fulfill']);
         Route::post('/requests/{request}/fulfill-return', [AdminController::class, 'fulfillReturn']);
         Route::post('/requests/{request}/fulfill-transfer', [AdminController::class, 'fulfillTransfer']);
+        // User search for asset assignment
+        Route::get('/users/search', [UserController::class, 'search']);
     });
 
     // =========================================

@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { assetsApi } from '@/lib/api';
+import { assetsApi, usersApi, masterDataApi } from '@/lib/api';
 import { Asset, AssetMovement } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   ArrowLeft, 
   History, 
@@ -22,11 +24,28 @@ import {
   Hash,
   Box,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  X,
+  Search,
+  UserPlus,
+  Check,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 type Tab = 'overview' | 'history' | 'attachments';
+
+interface SearchUser {
+  id: number;
+  nopeg: string;
+  name: string;
+  email: string;
+}
+
+interface Location {
+  id: number;
+  code: string;
+  name: string;
+}
 
 export default function AssetDetailPage() {
   const { id } = useParams();
@@ -37,6 +56,22 @@ export default function AssetDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMovementsLoading, setIsMovementsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Assign modal state
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
+  const [selectedUser, setSelectedUser] = useState<SearchUser | null>(null);
+  const [assignNotes, setAssignNotes] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+
+  // Location modal state
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
 
   // Wait for client-side hydration before fetching
   useEffect(() => {
@@ -79,6 +114,159 @@ export default function AssetDetailPage() {
     }
   }, [activeTab, asset]);
 
+  // Search users with debounce
+  useEffect(() => {
+    if (!showAssignModal || userSearch.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchingUsers(true);
+      try {
+        const { data } = await usersApi.search({ search: userSearch });
+        setSearchResults(data.data || []);
+      } catch (err) {
+        console.error('Failed to search users:', err);
+      } finally {
+        setSearchingUsers(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [userSearch, showAssignModal]);
+
+  const openAssignModal = () => {
+    setShowAssignModal(true);
+    setUserSearch('');
+    setSearchResults([]);
+    setSelectedUser(null);
+    setAssignNotes('');
+  };
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false);
+  };
+
+  const handleAssign = async () => {
+    if (!selectedUser || !asset) return;
+    
+    setAssigning(true);
+    try {
+      await assetsApi.assign(asset.id, {
+        user_id: selectedUser.id,
+        notes: assignNotes || undefined,
+      });
+      alert(`Aset berhasil ditetapkan ke ${selectedUser.name}`);
+      closeAssignModal();
+      // Refresh asset data
+      const response = await assetsApi.get(id as string);
+      setAsset(response.data.data);
+      setMovements([]); // Reset to refetch
+    } catch (err) {
+      console.error('Failed to assign asset:', err);
+      alert('Gagal menetapkan aset');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  // Location modal handlers
+  const openLocationModal = async () => {
+    setShowLocationModal(true);
+    setSelectedLocation(asset?.current_location?.id || null);
+    setLoadingLocations(true);
+    try {
+      const { data } = await masterDataApi.locations({ active_only: true });
+      setLocations(data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch locations:', err);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  const closeLocationModal = () => {
+    setShowLocationModal(false);
+  };
+
+  const handleSaveLocation = async () => {
+    if (!selectedLocation || !asset) return;
+    
+    setSavingLocation(true);
+    try {
+      await assetsApi.update(asset.id, { current_location_id: selectedLocation });
+      alert('Lokasi berhasil diubah');
+      closeLocationModal();
+      // Refresh asset data
+      const response = await assetsApi.get(id as string);
+      setAsset(response.data.data);
+    } catch (err) {
+      console.error('Failed to save location:', err);
+      alert('Gagal mengubah lokasi');
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
+  // Print QR Label
+  const printLabel = () => {
+    if (!asset) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker aktif. Izinkan popup untuk mencetak label.');
+      return;
+    }
+
+    // Use QR Code API to generate real QR code
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(asset.asset_tag)}`;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Label Aset - ${asset.asset_tag}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .label { 
+            border: 2px solid #000; 
+            padding: 20px; 
+            width: 200px; 
+            text-align: center;
+            display: inline-block;
+          }
+          .qr-code { margin: 0 auto 10px; }
+          .qr-code img { width: 120px; height: 120px; }
+          .asset-tag { font-size: 16px; font-weight: bold; font-family: monospace; margin-bottom: 5px; }
+          .asset-name { font-size: 11px; color: #333; }
+          .company { font-size: 10px; color: #666; margin-top: 8px; border-top: 1px solid #ccc; padding-top: 8px; }
+          @media print {
+            body { padding: 0; margin: 0; }
+            .no-print { display: none; }
+            .label { border: 1px solid #000; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="label">
+          <div class="qr-code">
+            <img src="${qrCodeUrl}" alt="QR Code" />
+          </div>
+          <div class="asset-tag">${asset.asset_tag}</div>
+          <div class="asset-name">${asset.name}</div>
+          <div class="company">SIAP - Sistem Informasi Aset Perusahaan</div>
+        </div>
+        <div class="no-print" style="margin-top: 20px;">
+          <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">Cetak</button>
+          <button onclick="window.close()" style="padding: 10px 20px; margin-left: 10px; cursor: pointer;">Tutup</button>
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -120,7 +308,10 @@ export default function AssetDetailPage() {
             Edit Aset
           </Button>
           {asset.status.value === 'IN_STOCK' && (
-            <Button>Tetapkan Pemegang</Button>
+            <Button onClick={openAssignModal}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Tetapkan Pemegang
+            </Button>
           )}
         </div>
       </div>
@@ -207,7 +398,11 @@ export default function AssetDetailPage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-500 uppercase">Harga Pembelian</p>
-                        <p className="text-sm font-semibold text-gray-900">{asset.purchase_price || '-'}</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {asset.purchase_price 
+                            ? `Rp. ${Number(asset.purchase_price).toLocaleString('id-ID')}` 
+                            : '-'}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
@@ -333,7 +528,7 @@ export default function AssetDetailPage() {
                     <h4 className="text-sm font-bold text-gray-900">{asset.current_user.name}</h4>
                     <p className="text-xs text-gray-500">NIK: {asset.current_user.nopeg}</p>
                     <div className="flex mt-2">
-                       <Button size="sm" variant="outline" className="h-7 text-xs">Lihat User</Button>
+                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => router.push(`/admin/users/${asset.current_user?.id}`)}>Lihat User</Button>
                     </div>
                   </div>
                 </div>
@@ -356,7 +551,7 @@ export default function AssetDetailPage() {
                     <h4 className="text-sm font-bold text-gray-900">{asset.current_location.name}</h4>
                     <p className="text-xs text-gray-500 mt-1">{asset.current_location.code}</p>
                     <div className="mt-3 flex space-x-2">
-                       <Button size="sm" variant="outline" className="h-7 text-xs">Ubah Lokasi</Button>
+                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={openLocationModal}>Ubah Lokasi</Button>
                     </div>
                   </div>
                 </div>
@@ -364,6 +559,7 @@ export default function AssetDetailPage() {
                 <div className="text-center py-4">
                   <MapPin className="mx-auto h-8 w-8 text-gray-300" />
                   <p className="text-sm text-gray-500 mt-2">Lokasi belum ditetapkan</p>
+                  <Button size="sm" variant="outline" className="mt-3 h-7 text-xs" onClick={openLocationModal}>Tetapkan Lokasi</Button>
                 </div>
               )}
             </div>
@@ -372,25 +568,190 @@ export default function AssetDetailPage() {
           {/* QR Code */}
           <Card title="Label Aset">
             <div className="p-6 text-center">
-              <div className="bg-gray-50 p-4 rounded-xl inline-block mb-4 border-2 border-dashed border-gray-200">
-                {/* Mock QR */}
-                <div className="w-32 h-32 bg-white flex items-center justify-center relative">
-                  <div className="w-full h-full p-2">
-                    <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white text-[10px] text-center font-mono overflow-hidden">
-                      {asset.asset_tag}
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 border-2 border-slate-900 opacity-20"></div>
-                </div>
+              <div className="bg-white p-4 rounded-xl inline-block mb-4 border border-gray-200">
+                <QRCodeSVG 
+                  value={asset.asset_tag} 
+                  size={128}
+                  level="M"
+                  includeMargin={false}
+                />
               </div>
+              <p className="text-sm font-mono font-bold text-gray-900 mb-1">{asset.asset_tag}</p>
               <p className="text-xs text-gray-500 mb-4">Cetak label ini untuk ditempel pada aset.</p>
-              <Button variant="outline" className="w-full" size="sm">
+              <Button variant="outline" className="w-full" size="sm" onClick={printLabel}>
                 Cetak Label QR
               </Button>
             </div>
           </Card>
         </div>
       </div>
+
+      {/* Assign Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">Tetapkan Pemegang</h2>
+              <Button variant="ghost" size="sm" onClick={closeAssignModal}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Selected User */}
+            {selectedUser ? (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                      {selectedUser.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{selectedUser.name}</p>
+                      <p className="text-xs text-gray-500">NIK: {selectedUser.nopeg}</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedUser(null)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Search Input */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cari Karyawan
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Ketik nama atau NIK..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  {userSearch.length > 0 && userSearch.length < 2 && (
+                    <p className="text-xs text-gray-500 mt-1">Ketik minimal 2 karakter</p>
+                  )}
+                </div>
+
+                {/* Search Results */}
+                {searchingUsers ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                    {searchResults.map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => setSelectedUser(user)}
+                        className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium text-sm">
+                          {user.name.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                          <p className="text-xs text-gray-500 truncate">NIK: {user.nopeg}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : userSearch.length >= 2 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">Tidak ada hasil</p>
+                ) : null}
+              </>
+            )}
+
+            {/* Notes */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Catatan (opsional)
+              </label>
+              <Input
+                placeholder="Catatan untuk assignment ini..."
+                value={assignNotes}
+                onChange={(e) => setAssignNotes(e.target.value)}
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={closeAssignModal}>
+                Batal
+              </Button>
+              <Button 
+                onClick={handleAssign} 
+                disabled={!selectedUser}
+                isLoading={assigning}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Tetapkan
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Modal */}
+      {showLocationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">Ubah Lokasi</h2>
+              <Button variant="ghost" size="sm" onClick={closeLocationModal}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {loadingLocations ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Pilih Lokasi
+                  </label>
+                  <select
+                    value={selectedLocation || ''}
+                    onChange={(e) => setSelectedLocation(Number(e.target.value) || null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Pilih Lokasi --</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name} ({loc.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button variant="outline" onClick={closeLocationModal}>
+                    Batal
+                  </Button>
+                  <Button 
+                    onClick={handleSaveLocation} 
+                    disabled={!selectedLocation}
+                    isLoading={savingLocation}
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Simpan
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

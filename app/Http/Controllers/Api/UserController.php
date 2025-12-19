@@ -115,4 +115,27 @@ class UserController extends Controller
             'data' => $roles,
         ]);
     }
+
+    /**
+     * Search users for asset assignment (accessible by asset_admin)
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = User::where('is_active', true);
+        
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('nopeg', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        $users = $query->orderBy('name')->limit(20)->get(['id', 'nopeg', 'name', 'email']);
+        
+        return response()->json([
+            'data' => $users,
+        ]);
+    }
 }
