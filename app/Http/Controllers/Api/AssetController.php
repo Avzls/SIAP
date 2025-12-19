@@ -41,6 +41,11 @@ class AssetController extends Controller
             $query->where('current_user_id', $request->user_id);
         }
 
+        if ($request->filled('ids')) {
+            $ids = explode(',', $request->ids);
+            $query->whereIn('id', $ids);
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {

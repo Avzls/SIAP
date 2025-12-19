@@ -8,7 +8,7 @@ import { Badge, getStatusVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
-import { Package, Plus, Search, Filter, Eye, Upload, Download, FileSpreadsheet, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { Package, Plus, Search, Filter, Eye, Upload, Download, FileSpreadsheet, X, AlertCircle, CheckCircle, Printer, CheckSquare, Square } from 'lucide-react';
 import type { Asset } from '@/types';
 import { useAuthStore } from '@/stores/auth';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ export default function AssetsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [meta, setMeta] = useState({ total: 0, current_page: 1, last_page: 1 });
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const isAdmin = user?.roles?.some(r => ['asset_admin', 'super_admin'].includes(r));
 
@@ -106,6 +107,87 @@ export default function AssetsPage() {
     window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/assets/import/template`, '_blank');
   };
 
+  const toggleSelection = (id: number) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === assets.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(assets.map(a => a.id));
+    }
+  };
+
+  const handleBulkPrint = () => {
+    if (selectedIds.length === 0) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.warning('Popup blocker aktif. Izinkan popup untuk mencetak label.');
+      return;
+    }
+
+    // Get selected assets details
+    const selectedAssets = assets.filter(a => selectedIds.includes(a.id));
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Cetak Label QR</title>
+          <style>
+            @page { size: A4; margin: 10mm; }
+            body { font-family: sans-serif; }
+            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+            .card { 
+              border: 1px dashed #ccc; 
+              padding: 20px; 
+              border-radius: 8px; 
+              display: flex; 
+              align-items: center; 
+              gap: 20px;
+              page-break-inside: avoid;
+            }
+            .qr-code { width: 100px; height: 100px; }
+            .info { flex: 1; }
+            .company { font-size: 12px; color: #666; margin-bottom: 5px; text-transform: uppercase; }
+            .tag { font-size: 24px; font-weight: bold; margin: 0; font-family: monospace; }
+            .name { font-size: 16px; margin: 5px 0 0 0; }
+            .meta { font-size: 11px; color: #666; margin-top: 5px; }
+            @media print {
+              .no-print { display: none; }
+              .card { border: 1px solid #000; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+            <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">Cetak Sekarang</button>
+          </div>
+          <div class="grid">
+            ${selectedAssets.map(asset => `
+              <div class="card">
+                <img class="qr-code" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(asset.asset_tag)}" />
+                <div class="info">
+                  <div class="company">PT. Sinergi Aset</div>
+                  <h1 class="tag">${asset.asset_tag}</h1>
+                  <h2 class="name">${asset.name}</h2>
+                  <div class="meta">
+                    Lokasi: ${asset.current_location?.name || '-'}<br>
+                    Tgl Beli: ${asset.purchase_date || '-'}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -129,6 +211,25 @@ export default function AssetsPage() {
           </div>
         )}
       </div>
+
+      {/* Bulk Actions */}
+      {selectedIds.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-blue-600" />
+            <span className="text-blue-900 font-medium">{selectedIds.length} akaun dipilih</span>
+          </div>
+          <div className="flex gap-2">
+             <Button variant="outline" size="sm" onClick={() => setSelectedIds([])} className="bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-200">
+               Batal
+             </Button>
+             <Button size="sm" onClick={handleBulkPrint}>
+               <Printer className="h-4 w-4 mr-2" />
+               Cetak Label ({selectedIds.length})
+             </Button>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <Card>
@@ -205,6 +306,18 @@ export default function AssetsPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
+                    <th className="px-6 py-3 w-4">
+                      <button 
+                        onClick={toggleSelectAll}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                         {selectedIds.length === assets.length && assets.length > 0 ? (
+                            <CheckSquare className="w-5 h-5 text-blue-600" />
+                         ) : (
+                            <Square className="w-5 h-5" />
+                         )}
+                      </button>
+                    </th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aset
                     </th>
@@ -230,7 +343,19 @@ export default function AssetsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {assets.map((asset) => (
-                    <tr key={asset.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={asset.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(asset.id) ? 'bg-blue-50/50' : ''}`}>
+                      <td className="px-6 py-4">
+                        <button 
+                          onClick={() => toggleSelection(asset.id)}
+                          className="text-gray-400 hover:text-blue-600"
+                        >
+                           {selectedIds.includes(asset.id) ? (
+                              <CheckSquare className="w-5 h-5 text-blue-600" />
+                           ) : (
+                              <Square className="w-5 h-5" />
+                           )}
+                        </button>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -280,7 +405,7 @@ export default function AssetsPage() {
                   ))}
                   {assets.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                         Tidak ada aset ditemukan
                       </td>
                     </tr>
