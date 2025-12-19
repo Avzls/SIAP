@@ -161,6 +161,15 @@ export const auditApi = {
   cancel: (id: number) => api.post(`/audit/${id}/cancel`),
 };
 
+// Maintenance API
+export const maintenanceApi = {
+  schedules: (params?: Record<string, unknown>) => api.get('/maintenance/schedules', { params }),
+  createSchedule: (data: Record<string, unknown>) => api.post('/maintenance/schedules', data),
+  deleteSchedule: (id: number) => api.delete(`/maintenance/schedules/${id}`),
+  logs: (params?: Record<string, unknown>) => api.get('/maintenance/logs', { params }),
+  createLog: (data: Record<string, unknown>) => api.post('/maintenance/logs', data),
+};
+
 // Master Data API (Admin)
 export const masterDataApi = {
   // Categories
