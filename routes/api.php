@@ -34,6 +34,11 @@ Route::prefix('auth')->group(function () {
 });
 
 // =========================================
+// Public Routes (No Auth Required)
+// =========================================
+Route::get('/assets/import/template', [AssetController::class, 'importTemplate']);
+
+// =========================================
 // Authenticated Routes
 // =========================================
 Route::middleware('auth:sanctum')->group(function () {
@@ -64,6 +69,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [AssetController::class, 'index']);
         Route::post('/', [AssetController::class, 'store']);
         Route::get('/available', [AssetController::class, 'available']);
+        
+        // Import
+        Route::post('/import', [AssetController::class, 'import']);
+        Route::get('/import/format', [AssetController::class, 'importFormat']);
+        
         Route::get('/{asset}', [AssetController::class, 'show']);
         Route::put('/{asset}', [AssetController::class, 'update']);
         Route::delete('/{asset}', [AssetController::class, 'destroy']);

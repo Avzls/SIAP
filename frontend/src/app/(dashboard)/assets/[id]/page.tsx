@@ -34,8 +34,11 @@ import {
   Upload,
   FileText,
   Image,
+  Edit,
+  Save,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 type Tab = 'overview' | 'history' | 'attachments';
 
@@ -94,6 +97,20 @@ export default function AssetDetailPage() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    brand: '',
+    model: '',
+    serial_number: '',
+    purchase_date: '',
+    purchase_price: '',
+    warranty_end: '',
+    notes: '',
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // Wait for client-side hydration before fetching
   useEffect(() => {
@@ -168,10 +185,10 @@ export default function AssetDetailPage() {
       
       const { data } = await assetsApi.uploadAttachment(asset.id, formData);
       setAttachments(prev => [data.data, ...prev]);
-      alert('File berhasil diupload');
+      toast.success('File berhasil diupload');
     } catch (err) {
       console.error('Failed to upload file:', err);
-      alert('Gagal mengupload file');
+      toast.error('Gagal mengupload file');
     } finally {
       setUploading(false);
       e.target.value = ''; // Reset input
@@ -186,10 +203,10 @@ export default function AssetDetailPage() {
     try {
       await assetsApi.deleteAttachment(asset.id, attachmentId);
       setAttachments(prev => prev.filter(a => a.id !== attachmentId));
-      alert('File berhasil dihapus');
+      toast.success('File berhasil dihapus');
     } catch (err) {
       console.error('Failed to delete attachment:', err);
-      alert('Gagal menghapus file');
+      toast.error('Gagal menghapus file');
     }
   };
 
@@ -236,7 +253,7 @@ export default function AssetDetailPage() {
         user_id: selectedUser.id,
         notes: assignNotes || undefined,
       });
-      alert(`Aset berhasil ditetapkan ke ${selectedUser.name}`);
+      toast.success(`Aset berhasil ditetapkan ke ${selectedUser.name}`);
       closeAssignModal();
       // Refresh asset data
       const response = await assetsApi.get(id as string);
@@ -244,7 +261,7 @@ export default function AssetDetailPage() {
       setMovements([]); // Reset to refetch
     } catch (err) {
       console.error('Failed to assign asset:', err);
-      alert('Gagal menetapkan aset');
+      toast.error('Gagal menetapkan aset');
     } finally {
       setAssigning(false);
     }
@@ -275,16 +292,64 @@ export default function AssetDetailPage() {
     setSavingLocation(true);
     try {
       await assetsApi.update(asset.id, { current_location_id: selectedLocation });
-      alert('Lokasi berhasil diubah');
+      toast.success('Lokasi berhasil diubah');
       closeLocationModal();
       // Refresh asset data
       const response = await assetsApi.get(id as string);
       setAsset(response.data.data);
     } catch (err) {
       console.error('Failed to save location:', err);
-      alert('Gagal mengubah lokasi');
+      toast.error('Gagal mengubah lokasi');
     } finally {
       setSavingLocation(false);
+    }
+  };
+
+  // Edit modal handlers
+  const openEditModal = () => {
+    if (!asset) return;
+    setEditForm({
+      name: asset.name || '',
+      brand: asset.brand || '',
+      model: asset.model || '',
+      serial_number: asset.serial_number || '',
+      purchase_date: asset.purchase_date ? asset.purchase_date.split('T')[0] : '',
+      purchase_price: asset.purchase_price?.toString() || '',
+      warranty_end: asset.warranty_end ? asset.warranty_end.split('T')[0] : '',
+      notes: asset.notes || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!asset) return;
+    
+    setSavingEdit(true);
+    try {
+      await assetsApi.update(asset.id, {
+        name: editForm.name,
+        brand: editForm.brand || null,
+        model: editForm.model || null,
+        serial_number: editForm.serial_number || null,
+        purchase_date: editForm.purchase_date || null,
+        purchase_price: editForm.purchase_price ? parseFloat(editForm.purchase_price) : null,
+        warranty_end: editForm.warranty_end || null,
+        notes: editForm.notes || null,
+      });
+      toast.success('Aset berhasil diperbarui');
+      closeEditModal();
+      // Refresh asset data
+      const response = await assetsApi.get(id as string);
+      setAsset(response.data.data);
+    } catch (err) {
+      console.error('Failed to update asset:', err);
+      toast.error('Gagal memperbarui aset');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -294,7 +359,7 @@ export default function AssetDetailPage() {
     
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Popup blocker aktif. Izinkan popup untuk mencetak label.');
+      toast.warning('Popup blocker aktif. Izinkan popup untuk mencetak label.');
       return;
     }
 
@@ -383,7 +448,8 @@ export default function AssetDetailPage() {
           </div>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={openEditModal}>
+            <Edit className="w-4 h-4 mr-2" />
             Edit Aset
           </Button>
           {asset.status.value === 'IN_STOCK' && (
@@ -912,6 +978,107 @@ export default function AssetDetailPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Asset Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">Edit Aset</h2>
+              <Button variant="ghost" size="sm" onClick={closeEditModal}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Aset *</label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="Nama aset"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Merek</label>
+                  <Input
+                    value={editForm.brand}
+                    onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
+                    placeholder="Contoh: Dell"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                  <Input
+                    value={editForm.model}
+                    onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
+                    placeholder="Contoh: Latitude 5520"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Seri</label>
+                <Input
+                  value={editForm.serial_number}
+                  onChange={(e) => setEditForm({ ...editForm, serial_number: e.target.value })}
+                  placeholder="Serial number"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Pembelian</label>
+                  <Input
+                    type="date"
+                    value={editForm.purchase_date}
+                    onChange={(e) => setEditForm({ ...editForm, purchase_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Garansi Berakhir</label>
+                  <Input
+                    type="date"
+                    value={editForm.warranty_end}
+                    onChange={(e) => setEditForm({ ...editForm, warranty_end: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Harga Pembelian (Rp)</label>
+                <Input
+                  type="number"
+                  value={editForm.purchase_price}
+                  onChange={(e) => setEditForm({ ...editForm, purchase_price: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder="Catatan tambahan..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={closeEditModal}>Batal</Button>
+                <Button onClick={handleSaveEdit} isLoading={savingEdit} disabled={!editForm.name}>
+                  <Save className="w-4 h-4 mr-2" />
+                  Simpan Perubahan
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

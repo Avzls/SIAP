@@ -22,6 +22,7 @@ import {
   Check
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function FulfillmentDashboard() {
   const [requests, setRequests] = useState<AssetRequest[]>([]);
@@ -75,7 +76,7 @@ export default function FulfillmentDashboard() {
     const allItemsAssigned = selectedRequest.items?.every(item => fulfillments[item.id]);
     
     if (selectedRequest.request_type.value === 'NEW' && !allItemsAssigned) {
-      alert('Mohon pilih aset untuk semua item sebelum memproses.');
+      toast.warning('Mohon pilih aset untuk semua item sebelum memproses.');
       return;
     }
 
@@ -96,12 +97,12 @@ export default function FulfillmentDashboard() {
         await adminApi.fulfillTransfer(selectedRequest.id, { notes });
       }
       
-      alert('Fulfillment berhasil diproses!');
+      toast.success('Fulfillment berhasil diproses!');
       setSelectedRequest(null);
       fetchRequests();
     } catch (err) {
       console.error('Fulfillment failed:', err);
-      alert('Gagal memproses fulfillment.');
+      toast.error('Gagal memproses fulfillment.');
     } finally {
       setIsSubmitting(false);
     }

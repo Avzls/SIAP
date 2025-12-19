@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { MapPin, Plus, Edit, Trash2, X, Check, Search } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Location {
   id: number;
@@ -92,7 +93,7 @@ export default function LocationsPage() {
       fetchLocations();
     } catch (error) {
       console.error('Failed to save location:', error);
-      alert('Gagal menyimpan lokasi');
+      toast.error('Gagal menyimpan lokasi');
     } finally {
       setSaving(false);
     }
@@ -100,7 +101,7 @@ export default function LocationsPage() {
 
   const handleDelete = async (location: Location) => {
     if (location.assets_count > 0) {
-      alert(`Lokasi tidak dapat dihapus karena masih memiliki ${location.assets_count} aset`);
+      toast.warning(`Lokasi tidak dapat dihapus karena masih memiliki ${location.assets_count} aset`);
       return;
     }
     if (!confirm(`Hapus lokasi "${location.name}"?`)) return;
@@ -109,7 +110,7 @@ export default function LocationsPage() {
       fetchLocations();
     } catch (error) {
       console.error('Failed to delete location:', error);
-      alert('Gagal menghapus lokasi');
+      toast.error('Gagal menghapus lokasi');
     }
   };
 

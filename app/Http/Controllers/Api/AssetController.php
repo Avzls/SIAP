@@ -165,4 +165,46 @@ class AssetController extends Controller
 
         return AssetResource::collection($query->get());
     }
+
+    /**
+     * Import assets from CSV file
+     */
+    public function import(Request $request): JsonResponse
+    {
+        $this->authorize('create', Asset::class);
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:5120', // 5MB max
+        ]);
+
+        $importService = new \App\Services\AssetImportService();
+        $result = $importService->importFromCsv($request->file('file'));
+
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    /**
+     * Download import template
+     */
+    public function importTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $content = \App\Services\AssetImportService::getTemplateContent();
+        
+        return response()->streamDownload(function () use ($content) {
+            echo $content;
+        }, 'template_import_aset.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Get import template format description
+     */
+    public function importFormat(): JsonResponse
+    {
+        return response()->json([
+            'columns' => \App\Services\AssetImportService::getTemplateDescription(),
+        ]);
+    }
 }
+

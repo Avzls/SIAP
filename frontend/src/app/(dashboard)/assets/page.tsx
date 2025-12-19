@@ -8,9 +8,10 @@ import { Badge, getStatusVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
-import { Package, Plus, Search, Filter, Eye } from 'lucide-react';
+import { Package, Plus, Search, Filter, Eye, Upload, Download, FileSpreadsheet, X, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Asset } from '@/types';
 import { useAuthStore } from '@/stores/auth';
+import { toast } from 'sonner';
 
 export default function AssetsPage() {
   const { user } = useAuthStore();
@@ -21,6 +22,19 @@ export default function AssetsPage() {
   const [meta, setMeta] = useState({ total: 0, current_page: 1, last_page: 1 });
 
   const isAdmin = user?.roles?.some(r => ['asset_admin', 'super_admin'].includes(r));
+
+  // Import modal state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    success: boolean;
+    message: string;
+    success_count?: number;
+    skip_count?: number;
+    errors?: { row: number; message: string }[];
+  } | null>(null);
+  const [formatInfo, setFormatInfo] = useState<{ column: string; description: string; required: boolean }[]>([]);
 
   const fetchAssets = async (page = 1) => {
     setLoading(true);
@@ -49,6 +63,49 @@ export default function AssetsPage() {
     fetchAssets();
   };
 
+  // Import handlers
+  const openImportModal = async () => {
+    setShowImportModal(true);
+    setImportFile(null);
+    setImportResult(null);
+    // Fetch format info
+    try {
+      const { data } = await assetsApi.importFormat();
+      setFormatInfo(data.columns || []);
+    } catch (err) {
+      console.error('Failed to fetch format:', err);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      const { data } = await assetsApi.import(formData);
+      setImportResult(data);
+      if (data.success) {
+        toast.success(data.message);
+        fetchAssets();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'Gagal mengimport file';
+      setImportResult({ success: false, message });
+      toast.error(message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/assets/import/template`, '_blank');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -58,12 +115,18 @@ export default function AssetsPage() {
           <p className="text-gray-500">Kelola dan lacak semua aset perusahaan</p>
         </div>
         {isAdmin && (
-          <Link href="/assets/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Tambah Aset
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={openImportModal}>
+              <Upload className="h-4 w-4" />
+              Import
             </Button>
-          </Link>
+            <Link href="/assets/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Tambah Aset
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 
@@ -249,6 +312,162 @@ export default function AssetsPage() {
           >
             Selanjutnya
           </Button>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <FileSpreadsheet className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">Import Aset dari CSV</h2>
+                  <p className="text-sm text-gray-500">Upload file CSV untuk menambahkan banyak aset sekaligus</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowImportModal(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Template Download */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Download className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900">Download Template</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Download template CSV untuk memastikan format yang benar.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    onClick={downloadTemplate}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Template
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Format Description */}
+            {formatInfo.length > 0 && (
+              <div className="mb-6">
+                <p className="text-sm font-medium text-gray-700 mb-2">Format Kolom:</p>
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="text-left px-3 py-2 text-xs font-medium text-gray-500">Kolom</th>
+                        <th className="text-left px-3 py-2 text-xs font-medium text-gray-500">Deskripsi</th>
+                        <th className="text-center px-3 py-2 text-xs font-medium text-gray-500">Wajib</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {formatInfo.map((col) => (
+                        <tr key={col.column}>
+                          <td className="px-3 py-2 font-mono text-xs">{col.column}</td>
+                          <td className="px-3 py-2 text-gray-600">{col.description}</td>
+                          <td className="px-3 py-2 text-center">
+                            {col.required ? (
+                              <span className="text-red-600 font-bold">*</span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* File Upload */}
+            <div className="mb-6">
+              <label className="block mb-2">
+                <span className="text-sm font-medium text-gray-700">File CSV</span>
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  className="mt-1 block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-lg file:border-0
+                    file:text-sm file:font-medium
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100
+                    cursor-pointer"
+                />
+              </label>
+              {importFile && (
+                <p className="text-sm text-gray-600 mt-2">
+                  File dipilih: <span className="font-medium">{importFile.name}</span> ({Math.round(importFile.size / 1024)} KB)
+                </p>
+              )}
+            </div>
+
+            {/* Import Result */}
+            {importResult && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                importResult.success 
+                  ? 'bg-green-50 border-green-200' 
+                  : 'bg-red-50 border-red-200'
+              }`}>
+                <div className="flex items-start gap-3">
+                  {importResult.success ? (
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                  )}
+                  <div className="flex-1">
+                    <p className={`font-medium ${importResult.success ? 'text-green-900' : 'text-red-900'}`}>
+                      {importResult.message}
+                    </p>
+                    {importResult.success_count !== undefined && (
+                      <p className="text-sm text-green-700 mt-1">
+                        ✓ {importResult.success_count} aset berhasil diimport
+                        {importResult.skip_count ? `, ${importResult.skip_count} dilewati` : ''}
+                      </p>
+                    )}
+                    {importResult.errors && importResult.errors.length > 0 && (
+                      <div className="mt-2 max-h-32 overflow-y-auto">
+                        <p className="text-xs font-medium text-red-800 mb-1">Errors:</p>
+                        {importResult.errors.map((err, idx) => (
+                          <p key={idx} className="text-xs text-red-700">
+                            Baris {err.row}: {err.message}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowImportModal(false)}>
+                {importResult?.success ? 'Tutup' : 'Batal'}
+              </Button>
+              {!importResult?.success && (
+                <Button 
+                  onClick={handleImport} 
+                  disabled={!importFile || importing}
+                  isLoading={importing}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

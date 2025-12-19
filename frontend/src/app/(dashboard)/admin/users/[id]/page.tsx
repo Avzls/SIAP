@@ -7,6 +7,7 @@ import { usersApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Save, Shield, User, Mail, Hash, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UserDetail {
   id: number;
@@ -75,10 +76,10 @@ export default function UserDetailPage() {
     setSaving(true);
     try {
       await usersApi.assignRoles(Number(id), selectedRoles);
-      alert('Role berhasil diperbarui');
+      toast.success('Role berhasil diperbarui');
     } catch (error) {
       console.error('Failed to save roles:', error);
-      alert('Gagal menyimpan role');
+      toast.error('Gagal menyimpan role');
     } finally {
       setSaving(false);
     }
@@ -92,7 +93,7 @@ export default function UserDetailPage() {
       setUser({ ...user, is_active: !user.is_active });
     } catch (error) {
       console.error('Failed to update user:', error);
-      alert('Gagal mengubah status');
+      toast.error('Gagal mengubah status');
     } finally {
       setSaving(false);
     }

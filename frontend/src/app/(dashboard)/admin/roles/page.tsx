@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Shield, Plus, Trash2, Edit, Users, Key, X, Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Role {
   id: number;
@@ -62,7 +63,7 @@ export default function RolesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to create role:', error);
-      alert('Gagal membuat role');
+      toast.error('Gagal membuat role');
     } finally {
       setSaving(false);
     }
@@ -78,7 +79,7 @@ export default function RolesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to update role:', error);
-      alert('Gagal mengupdate role');
+      toast.error('Gagal mengupdate role');
     } finally {
       setSaving(false);
     }
@@ -86,7 +87,7 @@ export default function RolesPage() {
 
   const handleDeleteRole = async (role: Role) => {
     if (systemRoles.includes(role.name)) {
-      alert('Role sistem tidak dapat dihapus');
+      toast.warning('Role sistem tidak dapat dihapus');
       return;
     }
     if (!confirm(`Hapus role "${role.name}"?`)) return;
@@ -95,7 +96,7 @@ export default function RolesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to delete role:', error);
-      alert('Gagal menghapus role');
+      toast.error('Gagal menghapus role');
     }
   };
 
