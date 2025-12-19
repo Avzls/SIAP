@@ -37,10 +37,17 @@ import {
   Edit,
   Save,
   TrendingDown,
+  RotateCcw,
+  MoreVertical,
+  AlertTriangle,
+  Ban,
+  Archive,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
+
 import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/auth';
 
 type Tab = 'overview' | 'history' | 'attachments' | 'depreciation';
 
@@ -60,6 +67,9 @@ interface Location {
 export default function AssetDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { user } = useAuthStore();
+  const isAdmin = user?.roles?.some(r => ['asset_admin', 'super_admin'].includes(r));
+
   const [asset, setAsset] = useState<Asset | null>(null);
   const [movements, setMovements] = useState<AssetMovement[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -100,7 +110,8 @@ export default function AssetDetailPage() {
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Edit modal state
+  const [deleteAttachmentId, setDeleteAttachmentId] = useState<number | null>(null);
+  const [deletingAttachment, setDeletingAttachment] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -115,6 +126,30 @@ export default function AssetDetailPage() {
     notes: '',
   });
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Return modal state
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnForm, setReturnForm] = useState({
+    location_id: '',
+    notes: '',
+  });
+  const [returning, setReturning] = useState(false);
+
+
+  // Disposal / Lost state
+  const [showRetireModal, setShowRetireModal] = useState(false);
+  const [retireReason, setRetireReason] = useState('');
+  const [retiring, setRetiring] = useState(false);
+
+  const [showLostModal, setShowLostModal] = useState(false);
+  const [lostNotes, setLostNotes] = useState('');
+  const [markingLost, setMarkingLost] = useState(false);
+
+  const [showFoundModal, setShowFoundModal] = useState(false);
+  const [foundForm, setFoundForm] = useState({ location_id: '', notes: '' });
+  const [markingFound, setMarkingFound] = useState(false);
+
+  const [showActionsDropdown, setShowActionsDropdown] = useState(false);
 
   // Depreciation State
   const [depreciationHistory, setDepreciationHistory] = useState<any[]>([]);
@@ -223,17 +258,26 @@ export default function AssetDetailPage() {
   };
 
   // Handle delete attachment
-  const handleDeleteAttachment = async (attachmentId: number, fileName: string) => {
-    if (!asset) return;
-    if (!confirm(`Hapus file "${fileName}"?`)) return;
+  // Handle delete attachment click
+  const handleDeleteAttachment = (attachmentId: number) => {
+    setDeleteAttachmentId(attachmentId);
+  };
 
+  // Confirm delete attachment
+  const confirmDeleteAttachment = async () => {
+    if (!asset || !deleteAttachmentId) return;
+
+    setDeletingAttachment(true);
     try {
-      await assetsApi.deleteAttachment(asset.id, attachmentId);
-      setAttachments(prev => prev.filter(a => a.id !== attachmentId));
+      await assetsApi.deleteAttachment(asset.id, deleteAttachmentId);
+      setAttachments(prev => prev.filter(a => a.id !== deleteAttachmentId));
       toast.success('File berhasil dihapus');
+      setDeleteAttachmentId(null);
     } catch (err) {
       console.error('Failed to delete attachment:', err);
       toast.error('Gagal menghapus file');
+    } finally {
+      setDeletingAttachment(false);
     }
   };
 
@@ -384,6 +428,133 @@ export default function AssetDetailPage() {
     }
   };
 
+  // Return Modal Handlers
+  const openReturnModal = async () => {
+    if (!asset) return;
+    setShowReturnModal(true);
+    setReturnForm({
+      location_id: '',
+      notes: '',
+    });
+    
+    // Reuse locations logic if needed, or fetch if empty
+    if (locations.length === 0) {
+        setLoadingLocations(true);
+        try {
+            const { data } = await masterDataApi.locations({ active_only: true });
+            setLocations(data.data || []);
+        } catch (err) {
+            console.error('Failed to fetch locations:', err);
+        } finally {
+            setLoadingLocations(false);
+        }
+    }
+  };
+
+  const handleReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!asset) return;
+
+    setReturning(true);
+    try {
+      await assetsApi.return(asset.id, {
+        location_id: returnForm.location_id ? Number(returnForm.location_id) : undefined,
+        notes: returnForm.notes,
+      });
+      toast.success('Aset berhasil dikembalikan');
+      setShowReturnModal(false);
+      // Refresh
+      const response = await assetsApi.get(id as string);
+      setAsset(response.data.data);
+      setMovements([]); // Reset history to refetch
+    } catch (err: any) {
+      console.error('Failed to return asset:', err);
+      toast.error(err.response?.data?.message || 'Gagal mengembalikan aset');
+    } finally {
+      setReturning(false);
+    }
+  };
+
+
+
+  // Disposal Handlers
+  const handleRetire = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!asset) return;
+    
+    setRetiring(true);
+    try {
+      await assetsApi.retire(asset.id, { reason: retireReason });
+      toast.success('Aset berhasil dihapus (Retire)');
+      setShowRetireModal(false);
+      const response = await assetsApi.get(id as string);
+      setAsset(response.data.data);
+      setMovements([]);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Gagal menghapus aset');
+    } finally {
+      setRetiring(false);
+    }
+  };
+
+  const handleMarkLost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!asset) return;
+
+    setMarkingLost(true);
+    try {
+      await assetsApi.markLost(asset.id, { notes: lostNotes });
+      toast.success('Aset dilaporkan hilang');
+      setShowLostModal(false);
+      const response = await assetsApi.get(id as string);
+      setAsset(response.data.data);
+      setMovements([]);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Gagal melaporkan aset hilang');
+    } finally {
+      setMarkingLost(false);
+    }
+  };
+
+  const handleMarkFound = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!asset) return;
+
+    setMarkingFound(true);
+    try {
+      await assetsApi.markFound(asset.id, { 
+        location_id: foundForm.location_id ? Number(foundForm.location_id) : undefined,
+        notes: foundForm.notes 
+      });
+      toast.success('Aset berhasil ditemukan kembali');
+      setShowFoundModal(false);
+      const response = await assetsApi.get(id as string);
+      setAsset(response.data.data);
+      setMovements([]);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Gagal mengupdate status aset');
+    } finally {
+      setMarkingFound(false);
+    }
+  };
+
+  // Locations for Found modal
+  const openFoundModal = async () => {
+     setShowFoundModal(true);
+     setFoundForm({ location_id: '', notes: '' });
+     if (locations.length === 0) {
+        setLoadingLocations(true);
+        try {
+            const { data } = await masterDataApi.locations({ active_only: true });
+            setLocations(data.data || []);
+        } catch (err) { console.error(err); } 
+        finally { setLoadingLocations(false); }
+     }
+  }
+
   // Print QR Label
   const printLabel = () => {
     if (!asset) return;
@@ -479,16 +650,85 @@ export default function AssetDetailPage() {
           </div>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline" onClick={openEditModal}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Aset
-          </Button>
-          {asset.status.value === 'IN_STOCK' && (
-            <Button onClick={openAssignModal}>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Tetapkan Pemegang
+          {asset.status.value === 'ASSIGNED' && asset.current_user && isAdmin && (
+            <Button onClick={openReturnModal} variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700">
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Kembalikan
             </Button>
           )}
+
+          {/* More Actions Dropdown */}
+          <div className="flex gap-2">
+          {isAdmin && (
+            <>
+              <Button variant="outline" onClick={openEditModal}>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Aset
+              </Button>
+              {asset.status.value === 'IN_STOCK' && (
+                <Button onClick={openAssignModal}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Tetapkan Pemegang
+                </Button>
+              )}
+              
+              <div className="relative">
+                <Button variant="ghost" size="icon" onClick={() => setShowActionsDropdown(!showActionsDropdown)}>
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+
+                {showActionsDropdown && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setShowActionsDropdown(false)}
+                    ></div>
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-20 py-1">
+                      {asset.status.value === 'LOST' ? (
+                         <button
+                            onClick={() => {
+                                openFoundModal(); 
+                                setShowActionsDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center"
+                         >
+                            <Check className="w-4 h-4 mr-2" />
+                            Lapor Ditemukan
+                         </button>
+                      ) : (
+                         <button
+                            onClick={() => {
+                                setShowLostModal(true);
+                                setLostNotes('');
+                                setShowActionsDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 flex items-center"
+                         >
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            Lapor Hilang
+                         </button>
+                      )}
+                      
+                      {asset.status.value !== 'RETIRED' && (
+                          <button
+                            onClick={() => {
+                                setShowRetireModal(true);
+                                setRetireReason('');
+                                setShowActionsDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center border-t border-gray-100"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Penghapusan (Retire)
+                          </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
         </div>
       </div>
 
@@ -678,30 +918,32 @@ export default function AssetDetailPage() {
             <Card title="Lampiran">
               <div className="p-6">
                 {/* Upload Button */}
-                <div className="mb-6">
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                      disabled={uploading}
-                    />
-                    <div className="flex items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg py-6 px-4 hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
-                      {uploading ? (
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                          <span>Mengupload...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <Upload className="w-5 h-5" />
-                          <span>Klik untuk upload file (maks 10MB)</span>
-                        </div>
-                      )}
-                    </div>
-                  </label>
-                </div>
+                {isAdmin && (
+                  <div className="mb-6">
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                        disabled={uploading}
+                      />
+                      <div className="flex items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg py-6 px-4 hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
+                        {uploading ? (
+                          <div className="flex items-center gap-2 text-gray-500">
+                            <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                            <span>Mengupload...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-gray-500">
+                            <Upload className="w-5 h-5" />
+                            <span>Klik untuk upload file (maks 10MB)</span>
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
 
                 {/* Attachments List */}
                 {loadingAttachments ? (
@@ -753,13 +995,15 @@ export default function AssetDetailPage() {
                           >
                             <Download className="w-4 h-4" />
                           </a>
-                          <button
-                            onClick={() => handleDeleteAttachment(att.id, att.original_name)}
-                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteAttachment(att.id)}
+                              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -894,7 +1138,9 @@ export default function AssetDetailPage() {
                     <h4 className="text-sm font-bold text-gray-900">{asset.current_location.name}</h4>
                     <p className="text-xs text-gray-500 mt-1">{asset.current_location.code}</p>
                     <div className="mt-3 flex space-x-2">
-                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={openLocationModal}>Ubah Lokasi</Button>
+                       {isAdmin && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={openLocationModal}>Ubah Lokasi</Button>
+                       )}
                     </div>
                   </div>
                 </div>
@@ -902,7 +1148,9 @@ export default function AssetDetailPage() {
                 <div className="text-center py-4">
                   <MapPin className="mx-auto h-8 w-8 text-gray-300" />
                   <p className="text-sm text-gray-500 mt-2">Lokasi belum ditetapkan</p>
-                  <Button size="sm" variant="outline" className="mt-3 h-7 text-xs" onClick={openLocationModal}>Tetapkan Lokasi</Button>
+                  {isAdmin && (
+                    <Button size="sm" variant="outline" className="mt-3 h-7 text-xs" onClick={openLocationModal}>Tetapkan Lokasi</Button>
+                  )}
                 </div>
               )}
             </div>
@@ -999,45 +1247,119 @@ export default function AssetDetailPage() {
                         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium text-sm">
                           {user.name.charAt(0)}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                          <p className="text-xs text-gray-500 truncate">NIK: {user.nopeg}</p>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                          <p className="text-xs text-gray-500">{user.nopeg}</p>
                         </div>
                       </button>
                     ))}
                   </div>
-                ) : userSearch.length >= 2 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">Tidak ada hasil</p>
-                ) : null}
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    {userSearch ? 'User tidak ditemukan' : 'Ketik untuk mencari...'}
+                  </div>
+                )}
+                
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Catatan (Opsional)
+                    </label>
+                    <textarea
+                        className="w-full border rounded-lg p-2 text-sm"
+                        placeholder="Contoh: Kondisi aset baik saat diserahkan"
+                        value={assignNotes}
+                        onChange={(e) => setAssignNotes(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex justify-end pt-4 mt-2 border-t border-gray-100">
+                    <Button 
+                        onClick={handleAssign} 
+                        disabled={!selectedUser || assigning}
+                        isLoading={assigning}
+                    >
+                        Simpan
+                    </Button>
+                </div>
               </>
             )}
+          </div>
+        </div>
+      )}
 
-            {/* Notes */}
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Catatan (opsional)
-              </label>
-              <Input
-                placeholder="Catatan untuk assignment ini..."
-                value={assignNotes}
-                onChange={(e) => setAssignNotes(e.target.value)}
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={closeAssignModal}>
-                Batal
-              </Button>
-              <Button 
-                onClick={handleAssign} 
-                disabled={!selectedUser}
-                isLoading={assigning}
+      {/* Return Modal */}
+      {showReturnModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Kembalikan Aset</h2>
+              <button 
+                onClick={() => setShowReturnModal(false)}
+                className="text-gray-400 hover:text-gray-600"
               >
-                <Check className="w-4 h-4 mr-2" />
-                Tetapkan
-              </Button>
+                <X className="w-5 h-5" />
+              </button>
             </div>
+
+            <form onSubmit={handleReturn}>
+                <div className="mb-4">
+                    <div className="bg-orange-50 p-3 rounded-lg flex gap-3 mb-4">
+                        <RotateCcw className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                        <div className="text-sm text-orange-800">
+                            <p className="font-medium">Konfirmasi Pengembalian</p>
+                            <p className="mt-1">
+                                Aset akan dikembalikan ke stok dan status kepemilikan user saat ini akan dicabut.
+                            </p>
+                        </div>
+                    </div>
+
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Lokasi Pengembalian (Opsional)
+                    </label>
+                    <select
+                        className="w-full border border-gray-300 rounded-lg p-2 mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        value={returnForm.location_id}
+                        onChange={(e) => setReturnForm({ ...returnForm, location_id: e.target.value })}
+                        disabled={loadingLocations}
+                    >
+                        <option value="">-- Pilih Lokasi (Biarkan kosong jika tetap) --</option>
+                        {locations.map((loc) => (
+                            <option key={loc.id} value={loc.id}>
+                                {loc.name} ({loc.code})
+                            </option>
+                        ))}
+                    </select>
+                    {loadingLocations && <p className="text-xs text-gray-500 mb-2">Memuat lokasi...</p>}
+
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Catatan / Kondisi
+                    </label>
+                    <textarea
+                        required
+                        className="w-full border border-gray-300 rounded-lg p-2 min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        placeholder="Contoh: Aset dikembalikan dalam kondisi baik."
+                        value={returnForm.notes}
+                        onChange={(e) => setReturnForm({ ...returnForm, notes: e.target.value })}
+                    />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <Button 
+                        type="button"
+                        variant="ghost" 
+                        onClick={() => setShowReturnModal(false)}
+                    >
+                        Batal
+                    </Button>
+                    <Button 
+                        type="submit"
+                        isLoading={returning}
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                        Kembalikan Aset
+                    </Button>
+                </div>
+            </form>
           </div>
         </div>
       )}
@@ -1217,6 +1539,209 @@ export default function AssetDetailPage() {
           </div>
         </div>
       )}
+      {/* Retire Modal */}
+      {showRetireModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-red-600 flex items-center gap-2">
+                <Trash2 className="w-5 h-5" />
+                Penghapusan Aset
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowRetireModal(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleRetire}>
+              <div className="space-y-4">
+                <div className="bg-red-50 p-3 rounded-lg text-sm text-red-800 border border-red-200">
+                  <p className="font-bold mb-1">Peringatan!</p>
+                  Aset ini akan dihapus secara permanen dari daftar aktif. Aksi ini akan tercatat dalam riwayat namun aset tidak dapat digunakan kembali.
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Alasan Penghapusan *
+                  </label>
+                  <textarea
+                    required
+                    className="w-full border border-gray-300 rounded-lg p-3 min-h-[100px] focus:ring-2 focus:ring-red-500 focus:outline-none"
+                    placeholder="Contoh: Rusak total dan tidak dapat diperbaiki, Dijual, atau Didonasikan..."
+                    value={retireReason}
+                    onChange={(e) => setRetireReason(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" type="button" onClick={() => setShowRetireModal(false)}>
+                  Batal
+                </Button>
+                <Button 
+                  type="submit" 
+                  isLoading={retiring}
+                  className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Hapus Aset
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Lost Modal */}
+      {showLostModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-orange-600 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Lapor Aset Hilang
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowLostModal(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleMarkLost}>
+              <div className="space-y-4">
+                <div className="bg-orange-50 p-3 rounded-lg text-sm text-orange-800 border border-orange-200">
+                  Status aset akan diubah menjadi <strong>LOST</strong>. Silakan isi kronologi kejadian.
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kronologi / Catatan *
+                  </label>
+                  <textarea
+                    required
+                    className="w-full border border-gray-300 rounded-lg p-3 min-h-[100px] focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    placeholder="Jelaskan bagaimana aset bisa hilang..."
+                    value={lostNotes}
+                    onChange={(e) => setLostNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" type="button" onClick={() => setShowLostModal(false)}>
+                  Batal
+                </Button>
+                <Button 
+                  type="submit" 
+                  isLoading={markingLost}
+                  className="bg-orange-600 hover:bg-orange-700 text-white border-orange-600"
+                >
+                  Laporkan Hilang
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Found Modal */}
+      {showFoundModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-green-600 flex items-center gap-2">
+                <Check className="w-5 h-5" />
+                Lapor Aset Ditemukan
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowFoundModal(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleMarkFound}>
+              <div className="space-y-4">
+                <div className="bg-green-50 p-3 rounded-lg text-sm text-green-800 border border-green-200">
+                  Aset yang ditemukan akan dikembalikan ke stok. Silakan update lokasinya.
+                </div>
+
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Lokasi Ditemukan
+                    </label>
+                    <select
+                        className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                        value={foundForm.location_id}
+                        onChange={(e) => setFoundForm({ ...foundForm, location_id: e.target.value })}
+                        disabled={loadingLocations}
+                    >
+                        <option value="">-- Pilih Lokasi (Opsional) --</option>
+                        {locations.map((loc) => (
+                            <option key={loc.id} value={loc.id}>
+                                {loc.name} ({loc.code})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Catatan Penemuan
+                  </label>
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-3 min-h-[80px] focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    placeholder="Catatan kondisi aset saat ditemukan..."
+                    value={foundForm.notes}
+                    onChange={(e) => setFoundForm({ ...foundForm, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" type="button" onClick={() => setShowFoundModal(false)}>
+                  Batal
+                </Button>
+                <Button 
+                  type="submit" 
+                  isLoading={markingFound}
+                  className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Simpan Status
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Attachment Confirmation Modal */}
+      {deleteAttachmentId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Hapus File?</h2>
+              <Button variant="ghost" size="sm" onClick={() => setDeleteAttachmentId(null)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-gray-500 mb-6">
+              Apakah Anda yakin ingin menghapus file ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteAttachmentId(null)} disabled={deletingAttachment}>
+                Batal
+              </Button>
+              <Button 
+                onClick={confirmDeleteAttachment} 
+                isLoading={deletingAttachment}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Hapus
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

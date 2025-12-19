@@ -217,7 +217,7 @@ export default function AssetsPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-blue-600" />
-            <span className="text-blue-900 font-medium">{selectedIds.length} akaun dipilih</span>
+            <span className="text-blue-900 font-medium">{selectedIds.length} aset dipilih</span>
           </div>
           <div className="flex gap-2">
              <Button variant="outline" size="sm" onClick={() => setSelectedIds([])} className="bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-200">
@@ -225,7 +225,7 @@ export default function AssetsPage() {
              </Button>
              <Button size="sm" onClick={handleBulkPrint}>
                <Printer className="h-4 w-4 mr-2" />
-               Cetak Label ({selectedIds.length})
+               Cetak Label
              </Button>
           </div>
         </div>
