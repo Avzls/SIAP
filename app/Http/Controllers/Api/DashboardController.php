@@ -25,8 +25,8 @@ class DashboardController extends Controller
             ->toArray();
         
         // User's requests count
-        $myRequests = AssetRequest::where('requester_user_id', $user->id)->count();
-        $myPendingRequests = AssetRequest::where('requester_user_id', $user->id)
+        $myRequests = AssetRequest::where('requester_id', $user->id)->count();
+        $myPendingRequests = AssetRequest::where('requester_id', $user->id)
             ->whereIn('status', ['DRAFT', 'PENDING_APPROVAL', 'APPROVED'])
             ->count();
         
@@ -35,7 +35,7 @@ class DashboardController extends Controller
         if ($user->hasAnyRole(['approver', 'super_admin'])) {
             $pendingApprovals = AssetRequest::where('status', 'PENDING_APPROVAL')
                 ->whereHas('approvals', function ($q) use ($user) {
-                    $q->where('approver_user_id', $user->id)
+                    $q->where('approver_id', $user->id)
                       ->whereNull('decided_at');
                 })
                 ->count();
@@ -63,7 +63,7 @@ class DashboardController extends Controller
         
         // Recent requests (5)
         $recentRequests = AssetRequest::with(['requester'])
-            ->where('requester_user_id', $user->id)
+            ->where('requester_id', $user->id)
             ->latest()
             ->take(5)
             ->get()
@@ -75,6 +75,60 @@ class DashboardController extends Controller
                 'created_at' => $req->created_at,
             ]);
         
+        // Analytics data for charts
+        
+        // Asset distribution by category
+        $assetsByCategory = Asset::join('asset_categories', 'assets.category_id', '=', 'asset_categories.id')
+            ->selectRaw('asset_categories.name as category, COUNT(*) as count')
+            ->groupBy('asset_categories.id', 'asset_categories.name')
+            ->get()
+            ->map(fn($item) => [
+                'name' => $item->category,
+                'value' => $item->count,
+            ]);
+        
+        // Asset distribution by location (handle null locations)
+        $assetsByLocation = Asset::leftJoin('asset_locations', 'assets.current_location_id', '=', 'asset_locations.id')
+            ->whereNotNull('assets.current_location_id')
+            ->selectRaw('asset_locations.name as location, COUNT(*) as count')
+            ->groupBy('asset_locations.id', 'asset_locations.name')
+            ->get()
+            ->map(fn($item) => [
+                'name' => $item->location ?? 'Unknown',
+                'value' => $item->count,
+            ]);
+        
+        // Asset distribution by status (with labels)
+        $assetsByStatusDetailed = collect($assetsByStatus)->map(function($count, $status) {
+            return [
+                'name' => \App\Enums\AssetStatus::from($status)->label(),
+                'value' => $count,
+                'status' => $status,
+            ];
+        })->values();
+        
+        // Monthly acquisition trend (last 12 months)
+        $monthlyAcquisitions = Asset::selectRaw('DATE_FORMAT(purchase_date, "%Y-%m") as month, COUNT(*) as count')
+            ->where('purchase_date', '>=', now()->subMonths(12))
+            ->whereNotNull('purchase_date')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(fn($item) => [
+                'month' => $item->month,
+                'count' => $item->count,
+            ]);
+        
+        // Request statistics by type
+        $requestsByType = AssetRequest::selectRaw('request_type, COUNT(*) as count')
+            ->groupBy('request_type')
+            ->get()
+            ->map(fn($item) => [
+                'name' => \App\Enums\RequestType::from($item->request_type)->label(),
+                'value' => $item->count,
+                'type' => $item->request_type,
+            ]);
+        
         return response()->json([
             'data' => [
                 'stats' => [
@@ -84,6 +138,13 @@ class DashboardController extends Controller
                     'my_pending_requests' => $myPendingRequests,
                     'pending_approvals' => $pendingApprovals,
                     'pending_fulfillment' => $pendingFulfillment,
+                ],
+                'analytics' => [
+                    'assets_by_category' => $assetsByCategory,
+                    'assets_by_location' => $assetsByLocation,
+                    'assets_by_status' => $assetsByStatusDetailed,
+                    'monthly_trend' => $monthlyAcquisitions,
+                    'requests_by_type' => $requestsByType,
                 ],
                 'recent_assets' => $recentAssets,
                 'recent_requests' => $recentRequests,
