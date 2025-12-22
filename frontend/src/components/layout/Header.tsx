@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { notificationsApi } from '@/lib/api';
-import { Bell, Search, Check, X, CheckCheck } from 'lucide-react';
+import { Bell, Search, Check, X, CheckCheck, BookOpen } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import Link from 'next/link';
@@ -125,6 +125,17 @@ export function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-4">
+          {/* User Manual Download */}
+          <a
+            href="/docs/PANDUAN_PENGGUNA.pdf"
+            download="Panduan_Pengguna_SIAP.pdf"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-sm font-medium"
+            title="Download Panduan Pengguna"
+          >
+            <BookOpen className="h-4 w-4" />
+            <span className="hidden md:inline">Panduan</span>
+          </a>
+
           {/* Notifications */}
           <div className="relative" ref={dropdownRef}>
             <button 

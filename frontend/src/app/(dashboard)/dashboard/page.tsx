@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth';
-import { assetsApi, requestsApi, approvalsApi } from '@/lib/api';
+import { dashboardApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge, getStatusVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +17,10 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import type { Asset, AssetRequest } from '@/types';
+import AssetDistributionChart from '@/components/dashboard/AssetDistributionChart';
+import AssetStatusChart from '@/components/dashboard/AssetStatusChart';
+import MonthlyTrendChart from '@/components/dashboard/MonthlyTrendChart';
+import RequestTypeChart from '@/components/dashboard/RequestTypeChart';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -26,6 +30,12 @@ export default function DashboardPage() {
     pendingRequests: 0,
     pendingApprovals: 0,
   });
+  const [analytics, setAnalytics] = useState<{
+    assets_by_category: Array<{ name: string; value: number }>;
+    assets_by_status: Array<{ name: string; value: number }>;
+    monthly_trend: Array<{ month: string; count: number }>;
+    requests_by_type: Array<{ name: string; value: number }>;
+  }>({ assets_by_category: [], assets_by_status: [], monthly_trend: [], requests_by_type: [] });
   const [recentAssets, setRecentAssets] = useState<Asset[]>([]);
   const [recentRequests, setRecentRequests] = useState<AssetRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,32 +43,25 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch assets
-        const { data: assetsData } = await assetsApi.list({ per_page: 5 });
-        setRecentAssets(assetsData.data || []);
-        setStats(prev => ({
-          ...prev,
-          totalAssets: assetsData.meta?.total || assetsData.data?.length || 0,
-        }));
-
-        // Fetch requests
-        const { data: requestsData } = await requestsApi.list({ per_page: 5 });
-        setRecentRequests(requestsData.data || []);
+        // Fetch dashboard data (includes analytics)
+        const { data } = await dashboardApi.get();
         
-        // Count pending requests for current user
-        const pendingCount = (requestsData.data || []).filter(
-          (r: AssetRequest) => !['FULFILLED', 'CLOSED', 'CANCELLED', 'REJECTED'].includes(r.status.value)
-        ).length;
-        setStats(prev => ({ ...prev, pendingRequests: pendingCount }));
-
-        // Fetch pending approvals if user is approver
-        if (user?.roles?.some(r => ['approver', 'super_admin'].includes(r))) {
-          const { data: approvalsData } = await approvalsApi.pending();
-          setStats(prev => ({
-            ...prev,
-            pendingApprovals: approvalsData.meta?.total || approvalsData.data?.length || 0,
-          }));
+        // Set stats
+        setStats({
+          totalAssets: data.data.stats.total_assets || 0,
+          myAssets: 0,
+          pendingRequests: data.data.stats.my_pending_requests || 0,
+          pendingApprovals: data.data.stats.pending_approvals || 0,
+        });
+        
+        // Set analytics
+        if (data.data.analytics) {
+          setAnalytics(data.data.analytics);
         }
+        
+        // Set recent data
+        setRecentAssets(data.data.recent_assets || []);
+        setRecentRequests(data.data.recent_requests || []);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -149,6 +152,47 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Analytics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribusi Aset per Kategori</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AssetDistributionChart data={analytics.assets_by_category} />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Status Aset</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AssetStatusChart data={analytics.assets_by_status} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Trend Pengadaan (12 Bulan)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MonthlyTrendChart data={analytics.monthly_trend} />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Statistik Permintaan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RequestTypeChart data={analytics.requests_by_type} />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent items */}
